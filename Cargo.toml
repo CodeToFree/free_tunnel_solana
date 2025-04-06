@@ -1,0 +1,19 @@
+[package]
+name = "free_tunnel_solana"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+borsh = "1.5.7"
+solana-program = "1.18.26"
+
+[dev-dependencies]
+solana-program-test = "1.18.26"
+solana-sdk = "1.18.26"
+tokio = "1.43.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[package.metadata.rustc]
+check-cfg = ["values(feature, \"custom-heap\", \"custom-panic\")", "values(target_os, \"solana\")"]
