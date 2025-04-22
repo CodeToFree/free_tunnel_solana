@@ -12,6 +12,13 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
+pub mod utils;
+
+#[cfg(test)]
+mod test {
+    pub mod utils_test;
+}
+
 // Program entrypoint
 entrypoint!(process_instruction);
 
@@ -30,6 +37,9 @@ pub fn process_instruction(
             process_initialize_counter(program_id, accounts, initial_value)?
         }
         CounterInstruction::IncrementCounter => process_increment_counter(program_id, accounts)?,
+        CounterInstruction::AddAnyValue { value } => {
+            process_add_any_value(program_id, accounts, value)?
+        }
     };
     Ok(())
 }
@@ -39,6 +49,7 @@ pub fn process_instruction(
 pub enum CounterInstruction {
     InitializeCounter { initial_value: u64 }, // variant 0
     IncrementCounter,                         // variant 1
+    AddAnyValue { value: u64 },               // variant 2
 }
 
 impl CounterInstruction {
@@ -59,6 +70,14 @@ impl CounterInstruction {
                 Ok(Self::InitializeCounter { initial_value })
             }
             1 => Ok(Self::IncrementCounter), // No additional data needed
+            2 => {
+                // For AddAnyValue, parse a u64 from the remaining bytes
+                let value = u64::from_le_bytes(
+                    rest.try_into()
+                        .map_err(|_| ProgramError::InvalidInstructionData)?,
+                );
+                Ok(Self::AddAnyValue { value })
+            }
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -144,6 +163,39 @@ fn process_increment_counter(program_id: &Pubkey, accounts: &[AccountInfo]) -> P
     Ok(())
 }
 
+// Function to add any value to the counter
+fn process_add_any_value(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    value: u64,
+) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+    let counter_account = next_account_info(accounts_iter)?;
+
+    // Verify account ownership
+    if counter_account.owner != program_id {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    // Mutable borrow the account data
+    let mut data = counter_account.data.borrow_mut();
+
+    // Deserialize the account data into our CounterAccount struct
+    let mut counter_data: CounterAccount = CounterAccount::try_from_slice(&data)?;
+
+    // Add the specified value to the counter
+    counter_data.count = counter_data
+        .count
+        .checked_add(value)
+        .ok_or(ProgramError::InvalidAccountData)?;
+
+    // Serialize the updated counter data back into the account
+    counter_data.serialize(&mut &mut data[..])?;
+
+    msg!("Counter increased by {} to: {}", value, counter_data.count);
+    Ok(())
+}
+
 // Struct representing our counter account's data
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct CounterAccount {
@@ -151,7 +203,7 @@ pub struct CounterAccount {
 }
 
 #[cfg(test)]
-mod test {
+mod test_origin {
     use super::*;
     use solana_program_test::*;
     use solana_sdk::{
@@ -242,6 +294,42 @@ mod test {
                 .expect("Failed to deserialize counter data");
             assert_eq!(counter.count, 43);
             println!("✅ Counter incremented successfully to: {}", counter.count);
+        }
+
+        // Step 3: Add a custom value to the counter
+        println!("Testing add any value...");
+        let add_value: u64 = 10;
+
+        // Create add value instruction
+        let mut add_value_instruction_data = vec![2]; // 2 = add value instruction
+        add_value_instruction_data.extend_from_slice(&add_value.to_le_bytes());
+
+        let add_value_instruction = Instruction::new_with_bytes(
+            program_id,
+            &add_value_instruction_data,
+            vec![AccountMeta::new(counter_keypair.pubkey(), true)],
+        );
+
+        // Send transaction with add value instruction
+        let mut transaction =
+            Transaction::new_with_payer(&[add_value_instruction], Some(&payer.pubkey()));
+        transaction.sign(&[&payer, &counter_keypair], recent_blockhash);
+        banks_client.process_transaction(transaction).await.unwrap();
+
+        // Check account data
+        let account = banks_client
+            .get_account(counter_keypair.pubkey())
+            .await
+            .expect("Failed to get counter account");
+
+        if let Some(account_data) = account {
+            let counter: CounterAccount = CounterAccount::try_from_slice(&account_data.data)
+                .expect("Failed to deserialize counter data");
+            assert_eq!(counter.count, 53); // 43 + 10 = 53
+            println!(
+                "✅ Counter increased by {} successfully to: {}",
+                add_value, counter.count
+            );
         }
     }
 }
