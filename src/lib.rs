@@ -12,6 +12,7 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
+pub mod error;
 pub mod utils;
 
 #[cfg(test)]
