@@ -13,3 +13,16 @@ impl From<DataAccountError> for ProgramError {
         ProgramError::Custom(e as u32)
     }
 }
+
+#[derive(Debug)]
+pub enum FreeTunnelError {
+    DuplicatedExecutors = 301,
+    SignerCannotBeZeroAddress,
+    InvalidSignature,
+}
+
+impl From<FreeTunnelError> for ProgramError {
+    fn from(e: FreeTunnelError) -> Self {
+        ProgramError::Custom(e as u32)
+    }
+}
