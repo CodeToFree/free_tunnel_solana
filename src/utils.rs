@@ -1,5 +1,3 @@
-use crate::error::{DataAccountError, FreeTunnelError};
-
 use std::{cmp::Ordering, collections::HashSet};
 use borsh::{BorshDeserialize, BorshSerialize};
 
@@ -15,20 +13,17 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
-pub struct Constants;
+use crate::constants::{EthAddress, Constants};
+use crate::error::{DataAccountError, FreeTunnelError};
+
 
 pub struct SignatureUtils;
 pub struct DataAccountUtils;
 
 
-impl Constants {
-    pub const ETH_ZERO_ADDRESS: [u8; 20] = [0; 20];
-}
-
-
 impl SignatureUtils {
 
-    pub fn join_address_list(eth_addrs: &[[u8; 20]]) -> Vec<u8> {
+    pub fn join_address_list(eth_addrs: &[EthAddress]) -> Vec<u8> {
         let mut result = Vec::new();
         for addr in eth_addrs {
             result.extend_from_slice(addr);
@@ -36,7 +31,7 @@ impl SignatureUtils {
         result
     }
 
-    pub fn cmp_addr_list(list1: &[[u8; 20]], list2: &[[u8; 20]]) -> bool {
+    pub fn cmp_addr_list(list1: &[EthAddress], list2: &[EthAddress]) -> bool {
         match list1.len().cmp(&list2.len()) {
             Ordering::Greater => true,
             Ordering::Less => false,
@@ -53,7 +48,7 @@ impl SignatureUtils {
         }
     }
 
-    pub fn check_executors_not_duplicated(executors: &[[u8; 20]]) -> ProgramResult {
+    pub fn check_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
         let mut seen = HashSet::new();
         match executors.iter().all(|addr| seen.insert(addr)) {
             true => Ok(()),
@@ -61,14 +56,14 @@ impl SignatureUtils {
         }
     }
 
-    pub fn eth_address_from_pubkey(pk: [u8; 64]) -> [u8; 20] {
+    pub fn eth_address_from_pubkey(pk: [u8; 64]) -> EthAddress {
         let hash = keccak::hash(&pk).to_bytes();
         let mut address = [0u8; 20];
         address.copy_from_slice(&hash[12..32]);
         address
     }
 
-    pub fn recover_eth_address(message: &[u8], signature: [u8; 64]) -> [u8; 20] {
+    pub fn recover_eth_address(message: &[u8], signature: [u8; 64]) -> EthAddress {
         let digest = keccak::hash(&message).to_bytes();
 
         let mut signature_split = [0 as u8; 64];
@@ -84,7 +79,7 @@ impl SignatureUtils {
         }
     }
 
-    pub fn check_signature(message: &[u8], signature: [u8; 64], eth_signer: [u8; 20]) -> ProgramResult {
+    pub fn check_signature(message: &[u8], signature: [u8; 64], eth_signer: EthAddress) -> ProgramResult {
         match eth_signer == Constants::ETH_ZERO_ADDRESS {
             true => Err(FreeTunnelError::SignerCannotBeZeroAddress.into()),
             false => {
@@ -96,6 +91,11 @@ impl SignatureUtils {
             }
         }
     }
+
+    // pub fn check_multi_signatures(
+    //     messages: &[u8],
+    // ) -> ProgramResult {
+    // }
 
 
     // public(friend) fun checkMultiSignatures(
