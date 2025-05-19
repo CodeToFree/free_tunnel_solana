@@ -24,6 +24,7 @@ pub mod core {
 
 #[cfg(test)]
 pub mod test {
+    pub mod req_helpers_test;
     pub mod utils_test;
 }
 

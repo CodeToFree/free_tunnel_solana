@@ -1,15 +1,11 @@
 use solana_program::{
-    account_info::AccountInfo,
-    clock::Clock,
-    entrypoint::ProgramResult,
-    program_error::ProgramError,
-    pubkey::Pubkey,
-    sysvar::Sysvar,
+    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult,
+    program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 
-use crate::{constants::Constants, state::TokensAndProposers};
 use crate::error::FreeTunnelError;
 use crate::utils::DataAccountUtils;
+use crate::{constants::Constants, state::TokensAndProposers};
 pub struct ReqId {
     /// In format of: `version:uint8|createdTime:uint40|action:uint8`
     ///     + `tokenIndex:uint8|amount:uint64|from:uint8|to:uint8|(TBD):uint112`
@@ -17,6 +13,10 @@ pub struct ReqId {
 }
 
 impl ReqId {
+    pub fn new(data: [u8; 32]) -> Self {
+        Self { data }
+    }
+
     pub fn version(&self) -> u8 {
         self.data[0]
     }
@@ -53,9 +53,8 @@ impl ReqId {
         &self,
         data_account_tokens_proposers: &AccountInfo,
     ) -> Result<u8, ProgramError> {
-        let TokensAndProposers {
-            tokens, ..
-        } = DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
+        let TokensAndProposers { tokens, .. } =
+            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         if tokens[self.token_index() as usize] == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
@@ -77,7 +76,7 @@ impl ReqId {
             Ok((token_pubkey, decimals[self.token_index() as usize]))
         }
     }
-    
+
     pub fn raw_amount(&self) -> u64 {
         u64::from_be_bytes(self.data[8..16].try_into().unwrap())
     }
@@ -90,7 +89,8 @@ impl ReqId {
         if amount == 0 {
             Err(FreeTunnelError::AmountCannotBeZero.into())
         } else {
-            let (_, decimal) = self.checked_token_pubkey_and_decimal(data_account_tokens_proposers)?;
+            let (_, decimal) =
+                self.checked_token_pubkey_and_decimal(data_account_tokens_proposers)?;
             if decimal > 6 {
                 Ok(amount * 10u64.pow(decimal as u32 - 6))
             } else if decimal < 6 {
@@ -113,7 +113,7 @@ impl ReqId {
                 msg.extend_from_slice(b"]\n");
                 msg.extend_from_slice(b"Sign to execute a lock-mint:\n");
                 msg.extend_from_slice(b"0x");
-                msg.extend_from_slice(&self.data);
+                msg.extend_from_slice(hex::encode(&self.data).as_bytes());
                 msg
             }
             2 => {
@@ -124,7 +124,7 @@ impl ReqId {
                 msg.extend_from_slice(b"]\n");
                 msg.extend_from_slice(b"Sign to execute a burn-unlock:\n");
                 msg.extend_from_slice(b"0x");
-                msg.extend_from_slice(&self.data);
+                msg.extend_from_slice(hex::encode(&self.data).as_bytes());
                 msg
             }
             3 => {
@@ -135,7 +135,7 @@ impl ReqId {
                 msg.extend_from_slice(b"]\n");
                 msg.extend_from_slice(b"Sign to execute a burn-mint:\n");
                 msg.extend_from_slice(b"0x");
-                msg.extend_from_slice(&self.data);
+                msg.extend_from_slice(hex::encode(&self.data).as_bytes());
                 msg
             }
             _ => vec![],
@@ -143,7 +143,7 @@ impl ReqId {
     }
 
     pub fn assert_from_chain_only(&self) -> ProgramResult {
-        if  self.data[16] != Constants::CHAIN {
+        if self.data[16] != Constants::CHAIN {
             Err(FreeTunnelError::NotFromCurrentChain.into())
         } else {
             Ok(())
@@ -157,5 +157,4 @@ impl ReqId {
             Ok(())
         }
     }
-
 }
