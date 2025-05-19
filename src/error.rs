@@ -19,6 +19,11 @@ pub enum FreeTunnelError {
     DuplicatedExecutors = 301,
     SignerCannotBeZeroAddress,
     InvalidSignature,
+    ArrayLengthNotEqual,
+    NotMeetThreshold,
+    ExecutorsNotYetActive,
+    ExecutorsOfNextIndexIsActive,
+    NonExecutors,
 }
 
 impl From<FreeTunnelError> for ProgramError {

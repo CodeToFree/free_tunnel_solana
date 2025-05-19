@@ -17,8 +17,13 @@ pub mod utils;
 pub mod constants;
 pub mod state;
 
+pub mod core {
+    pub mod req_helpers;
+    pub mod permissions;
+}
+
 #[cfg(test)]
-mod test {
+pub mod test {
     pub mod utils_test;
 }
 

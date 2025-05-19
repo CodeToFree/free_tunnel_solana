@@ -3,6 +3,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 
 use solana_program::{
     account_info::AccountInfo,
+    clock::Clock,
     entrypoint::ProgramResult,
     keccak,
     program::invoke_signed,
@@ -15,6 +16,7 @@ use solana_program::{
 
 use crate::constants::{EthAddress, Constants};
 use crate::error::{DataAccountError, FreeTunnelError};
+use crate::state::{BasicStorage, ExecutorsInfo};
 
 
 pub struct SignatureUtils;
@@ -23,7 +25,7 @@ pub struct DataAccountUtils;
 
 impl SignatureUtils {
 
-    pub fn join_address_list(eth_addrs: &[EthAddress]) -> Vec<u8> {
+    fn join_address_list(eth_addrs: &[EthAddress]) -> Vec<u8> {
         let mut result = Vec::new();
         for addr in eth_addrs {
             result.extend_from_slice(addr);
@@ -31,7 +33,7 @@ impl SignatureUtils {
         result
     }
 
-    pub fn cmp_addr_list(list1: &[EthAddress], list2: &[EthAddress]) -> bool {
+    fn cmp_addr_list(list1: &[EthAddress], list2: &[EthAddress]) -> bool {
         match list1.len().cmp(&list2.len()) {
             Ordering::Greater => true,
             Ordering::Less => false,
@@ -48,7 +50,7 @@ impl SignatureUtils {
         }
     }
 
-    pub fn check_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
+    fn check_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
         let mut seen = HashSet::new();
         match executors.iter().all(|addr| seen.insert(addr)) {
             true => Ok(()),
@@ -56,30 +58,28 @@ impl SignatureUtils {
         }
     }
 
-    pub fn eth_address_from_pubkey(pk: [u8; 64]) -> EthAddress {
+    pub(crate) fn eth_address_from_pubkey(pk: [u8; 64]) -> EthAddress {
         let hash = keccak::hash(&pk).to_bytes();
         let mut address = [0u8; 20];
         address.copy_from_slice(&hash[12..32]);
         address
     }
 
-    pub fn recover_eth_address(message: &[u8], signature: [u8; 64]) -> EthAddress {
+    pub(crate) fn recover_eth_address(message: &[u8], mut signature: [u8; 64]) -> EthAddress {
         let digest = keccak::hash(&message).to_bytes();
 
-        let mut signature_split = [0 as u8; 64];
-        signature_split.copy_from_slice(&signature);
-        let first_bit_of_s = signature_split.get_mut(32).unwrap();
+        let first_bit_of_s = signature.get_mut(32).unwrap();
         let recovery_id = *first_bit_of_s >> 7;
         *first_bit_of_s = *first_bit_of_s & 0x7f;
 
-        let pubkey = secp256k1_recover(&digest, recovery_id, &signature_split);
+        let pubkey = secp256k1_recover(&digest, recovery_id, &signature);
         match pubkey {
             Ok(eth_pubkey) => Self::eth_address_from_pubkey(eth_pubkey.to_bytes()),
             Err(_error) => [0; 20],
         }
     }
 
-    pub fn check_signature(message: &[u8], signature: [u8; 64], eth_signer: EthAddress) -> ProgramResult {
+    fn check_signature(message: &[u8], signature: [u8; 64], eth_signer: EthAddress) -> ProgramResult {
         match eth_signer == Constants::ETH_ZERO_ADDRESS {
             true => Err(FreeTunnelError::SignerCannotBeZeroAddress.into()),
             false => {
@@ -92,70 +92,84 @@ impl SignatureUtils {
         }
     }
 
-    // pub fn check_multi_signatures(
-    //     messages: &[u8],
-    // ) -> ProgramResult {
-    // }
 
 
-    // public(friend) fun checkMultiSignatures(
-    //     msg: vector<u8>,
-    //     r: vector<vector<u8>>,
-    //     yParityAndS: vector<vector<u8>>,
-    //     executors: vector<vector<u8>>,
-    //     exeIndex: u64,
-    // ) acquires PermissionsStorage {
-    //     assert!(vector::length(&r) == vector::length(&yParityAndS), EARRAY_LENGTH_NOT_EQUAL);
-    //     assert!(vector::length(&r) == vector::length(&executors), EARRAY_LENGTH_NOT_EQUAL);
-    //     checkExecutorsForIndex(&executors, exeIndex);
-    //     let i = 0;
-    //     while (i < vector::length(&executors)) {
-    //         checkSignature(msg, *vector::borrow(&r, i), *vector::borrow(&yParityAndS, i), *vector::borrow(&executors, i));
-    //         i = i + 1;
-    //     };
-    // }
+    fn check_executors_for_index(
+        data_account_basic_storage: &AccountInfo,
+        data_account_current_executors: &AccountInfo,
+        data_account_next_executors: &AccountInfo,
+        executors: &Vec<EthAddress>, 
+        exe_index: u64
+    ) -> ProgramResult {
+        // Check executors threshold
+        let ExecutorsInfo {
+            index: _, threshold, active_since, executors: current_executors
+        } = DataAccountUtils::read_account_data(data_account_current_executors)?;
+        if executors.len() < threshold as usize {
+            return Err(FreeTunnelError::NotMeetThreshold.into());
+        }
 
+        // Check timestamp for current index
+        let clock = Clock::get()?;
+        if clock.unix_timestamp < (active_since as i64) {
+            return Err(FreeTunnelError::ExecutorsNotYetActive.into());
+        }
 
-    // fun checkExecutorsForIndex(executors: &vector<vector<u8>>, exeIndex: u64) acquires PermissionsStorage {
-    //     let storeP = borrow_global_mut<PermissionsStorage>(@free_tunnel_aptos);
-    //     assertEthAddressList(executors);
-    //     assert!(
-    //         vector::length(executors) >= *vector::borrow(&storeP._exeThresholdForIndex, exeIndex),
-    //         ENOT_MEET_THRESHOLD
-    //     );
-    //     let activeSince = *vector::borrow(&storeP._exeActiveSinceForIndex, exeIndex);
-    //     assert!(activeSince < now_seconds(), EEXECUTORS_NOT_YET_ACTIVE);
+        // Check timestamp for next index
+        let BasicStorage { 
+            admin: _, executors_group_length 
+        } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        if executors_group_length > exe_index + 1 {
+            let ExecutorsInfo {
+                active_since: next_active_since, ..
+            } = DataAccountUtils::read_account_data(data_account_next_executors)?;
+            if clock.unix_timestamp > (next_active_since as i64) {
+                return Err(FreeTunnelError::ExecutorsOfNextIndexIsActive.into());
+            }
+        }
 
-    //     if (vector::length(&storeP._exeActiveSinceForIndex) > exeIndex + 1) {
-    //         let nextActiveSince = *vector::borrow(&storeP._exeActiveSinceForIndex, exeIndex + 1);
-    //         assert!(nextActiveSince > now_seconds(), EEXECUTORS_OF_NEXT_INDEX_IS_ACTIVE);
-    //     };
+        // Check executors index
+        for (i, executor) in executors.iter().enumerate() {
+            if executors[0..i].iter().any(|e| e == executor) {
+                return Err(FreeTunnelError::DuplicatedExecutors.into());
+            }
+            if !current_executors.iter().any(|e| e == executor) {
+                return Err(FreeTunnelError::NonExecutors.into());
+            }
+        }
 
-    //     let currentExecutors = *vector::borrow(&storeP._executorsForIndex, exeIndex);
-    //     let i = 0;
-    //     while (i < vector::length(executors)) {
-    //         let executor = *vector::borrow(executors, i);
-    //         let j = 0;
-    //         while (j < i) {
-    //             assert!(*vector::borrow(executors, j) != executor, EDUPLICATED_EXECUTORS);
-    //             j = j + 1;
-    //         };
-    //         let isExecutor = false;
-    //         let j = 0;
-    //         while (j < vector::length(&currentExecutors)) {
-    //             if (executor == *vector::borrow(&currentExecutors, j)) {
-    //                 isExecutor = true;
-    //                 break
-    //             };
-    //             j = j + 1;
-    //         };
-    //         assert!(isExecutor, ENON_EXECUTOR);
-    //         i = i + 1;
-    //     };
-    // }
+        Ok(())
+    }
 
-
-
+    fn check_multi_signatures(
+        data_account_basic_storage: &AccountInfo,
+        data_account_current_executors: &AccountInfo,
+        data_account_next_executors: &AccountInfo,
+        messages: &[u8],
+        signatures: &Vec<[u8; 64]>,
+        executors: &Vec<EthAddress>,
+        exe_index: u64,
+    ) -> ProgramResult {
+        if signatures.len() != executors.len() {
+            return Err(FreeTunnelError::ArrayLengthNotEqual.into());
+        }
+        Self::check_executors_for_index(
+            data_account_basic_storage, 
+            data_account_current_executors, 
+            data_account_next_executors, 
+            executors, 
+            exe_index
+        )?;
+        
+        for (i, executor) in executors.iter().enumerate() {
+            Self::check_signature(
+                messages, 
+                signatures[i], 
+                *executor
+            )?;
+        }
+        Ok(())
+    }
 }
 
 impl DataAccountUtils {
