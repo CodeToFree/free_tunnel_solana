@@ -16,6 +16,7 @@ impl From<DataAccountError> for ProgramError {
 
 #[derive(Debug)]
 pub enum FreeTunnelError {
+    // Utils & Signature
     DuplicatedExecutors = 301,
     SignerCannotBeZeroAddress,
     InvalidSignature,
@@ -24,12 +25,19 @@ pub enum FreeTunnelError {
     ExecutorsNotYetActive,
     ExecutorsOfNextIndexIsActive,
     NonExecutors,
+
+    // Req Helpers
     CreatedTimeTooEarly,
     CreatedTimeTooLate,
     TokenIndexNonExistent,
     AmountCannotBeZero,
     NotFromCurrentChain,
     NotToCurrentChain,
+
+    // Permissions
+    ThresholdMustBeGreaterThanZero,
+    ActiveSinceShouldAfter36h,
+    ActiveSinceShouldWithin5d,
 }
 
 impl From<FreeTunnelError> for ProgramError {

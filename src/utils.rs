@@ -22,15 +22,17 @@ pub struct SignatureUtils;
 pub struct DataAccountUtils;
 
 impl SignatureUtils {
-    fn join_address_list(eth_addrs: &[EthAddress]) -> Vec<u8> {
+    pub(crate) fn join_address_list(eth_addrs: &Vec<EthAddress>) -> Vec<u8> {
         let mut result = Vec::new();
         for addr in eth_addrs {
-            result.extend_from_slice(addr);
+            result.extend_from_slice(b"0x");
+            result.extend_from_slice(hex::encode(addr).as_bytes());
+            result.extend_from_slice(b"\n");
         }
         result
     }
 
-    fn cmp_addr_list(list1: &[EthAddress], list2: &[EthAddress]) -> bool {
+    pub(crate) fn cmp_addr_list(list1: &Vec<EthAddress>, list2: &Vec<EthAddress>) -> bool {
         match list1.len().cmp(&list2.len()) {
             Ordering::Greater => true,
             Ordering::Less => false,
@@ -46,7 +48,7 @@ impl SignatureUtils {
         }
     }
 
-    fn check_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
+    pub(crate) fn check_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
         let mut seen = HashSet::new();
         match executors.iter().all(|addr| seen.insert(addr)) {
             true => Ok(()),
@@ -111,8 +113,8 @@ impl SignatureUtils {
         }
 
         // Check timestamp for current index
-        let clock = Clock::get()?;
-        if clock.unix_timestamp < (active_since as i64) {
+        let now = Clock::get()?.unix_timestamp;
+        if now < (active_since as i64) {
             return Err(FreeTunnelError::ExecutorsNotYetActive.into());
         }
 
@@ -126,7 +128,7 @@ impl SignatureUtils {
                 active_since: next_active_since,
                 ..
             } = DataAccountUtils::read_account_data(data_account_next_executors)?;
-            if clock.unix_timestamp > (next_active_since as i64) {
+            if now > (next_active_since as i64) {
                 return Err(FreeTunnelError::ExecutorsOfNextIndexIsActive.into());
             }
         }
@@ -144,11 +146,11 @@ impl SignatureUtils {
         Ok(())
     }
 
-    fn check_multi_signatures(
+    pub(crate) fn check_multi_signatures(
         data_account_basic_storage: &AccountInfo,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        messages: &[u8],
+        message: &[u8],
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
         exe_index: u64,
@@ -165,7 +167,7 @@ impl SignatureUtils {
         )?;
 
         for (i, executor) in executors.iter().enumerate() {
-            Self::check_signature(messages, signatures[i], *executor)?;
+            Self::check_signature(message, signatures[i], *executor)?;
         }
         Ok(())
     }
