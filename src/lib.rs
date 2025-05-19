@@ -12,14 +12,14 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
-pub mod error;
-pub mod utils;
 pub mod constants;
+pub mod error;
 pub mod state;
+pub mod utils;
 
 pub mod core {
-    pub mod req_helpers;
     pub mod permissions;
+    pub mod req_helpers;
 }
 
 #[cfg(test)]

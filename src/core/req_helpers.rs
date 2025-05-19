@@ -1,11 +1,10 @@
 pub struct ReqId {
-    /// In format of: `version:uint8|createdTime:uint40|action:uint8` 
+    /// In format of: `version:uint8|createdTime:uint40|action:uint8`
     ///     + `tokenIndex:uint8|amount:uint64|from:uint8|to:uint8|(TBD):uint112`
     data: [u8; 32],
 }
 
 impl ReqId {
-
     // public(friend) fun versionFrom(reqId: &vector<u8>): u8 {
     //     *vector::borrow(reqId, 0)
     // }

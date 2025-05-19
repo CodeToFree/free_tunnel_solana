@@ -1,5 +1,5 @@
-use std::{cmp::Ordering, collections::HashSet};
 use borsh::{BorshDeserialize, BorshSerialize};
+use std::{cmp::Ordering, collections::HashSet};
 
 use solana_program::{
     account_info::AccountInfo,
@@ -14,17 +14,14 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
-use crate::constants::{EthAddress, Constants};
+use crate::constants::{Constants, EthAddress};
 use crate::error::{DataAccountError, FreeTunnelError};
 use crate::state::{BasicStorage, ExecutorsInfo};
-
 
 pub struct SignatureUtils;
 pub struct DataAccountUtils;
 
-
 impl SignatureUtils {
-
     fn join_address_list(eth_addrs: &[EthAddress]) -> Vec<u8> {
         let mut result = Vec::new();
         for addr in eth_addrs {
@@ -37,16 +34,15 @@ impl SignatureUtils {
         match list1.len().cmp(&list2.len()) {
             Ordering::Greater => true,
             Ordering::Less => false,
-            Ordering::Equal => {
-                list1.iter()
-                    .zip(list2.iter())
-                    .find_map(|(a, b)| match a.cmp(b) {
-                        Ordering::Greater => Some(true),
-                        Ordering::Less => Some(false),
-                        Ordering::Equal => None,
-                    })
-                    .unwrap_or(false)
-            }
+            Ordering::Equal => list1
+                .iter()
+                .zip(list2.iter())
+                .find_map(|(a, b)| match a.cmp(b) {
+                    Ordering::Greater => Some(true),
+                    Ordering::Less => Some(false),
+                    Ordering::Equal => None,
+                })
+                .unwrap_or(false),
         }
     }
 
@@ -79,7 +75,11 @@ impl SignatureUtils {
         }
     }
 
-    fn check_signature(message: &[u8], signature: [u8; 64], eth_signer: EthAddress) -> ProgramResult {
+    fn check_signature(
+        message: &[u8],
+        signature: [u8; 64],
+        eth_signer: EthAddress,
+    ) -> ProgramResult {
         match eth_signer == Constants::ETH_ZERO_ADDRESS {
             true => Err(FreeTunnelError::SignerCannotBeZeroAddress.into()),
             false => {
@@ -92,18 +92,19 @@ impl SignatureUtils {
         }
     }
 
-
-
     fn check_executors_for_index(
         data_account_basic_storage: &AccountInfo,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        executors: &Vec<EthAddress>, 
-        exe_index: u64
+        executors: &Vec<EthAddress>,
+        exe_index: u64,
     ) -> ProgramResult {
         // Check executors threshold
         let ExecutorsInfo {
-            index: _, threshold, active_since, executors: current_executors
+            index: _,
+            threshold,
+            active_since,
+            executors: current_executors,
         } = DataAccountUtils::read_account_data(data_account_current_executors)?;
         if executors.len() < threshold as usize {
             return Err(FreeTunnelError::NotMeetThreshold.into());
@@ -116,12 +117,14 @@ impl SignatureUtils {
         }
 
         // Check timestamp for next index
-        let BasicStorage { 
-            admin: _, executors_group_length 
+        let BasicStorage {
+            admin: _,
+            executors_group_length,
         } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if executors_group_length > exe_index + 1 {
             let ExecutorsInfo {
-                active_since: next_active_since, ..
+                active_since: next_active_since,
+                ..
             } = DataAccountUtils::read_account_data(data_account_next_executors)?;
             if clock.unix_timestamp > (next_active_since as i64) {
                 return Err(FreeTunnelError::ExecutorsOfNextIndexIsActive.into());
@@ -154,19 +157,15 @@ impl SignatureUtils {
             return Err(FreeTunnelError::ArrayLengthNotEqual.into());
         }
         Self::check_executors_for_index(
-            data_account_basic_storage, 
-            data_account_current_executors, 
-            data_account_next_executors, 
-            executors, 
-            exe_index
+            data_account_basic_storage,
+            data_account_current_executors,
+            data_account_next_executors,
+            executors,
+            exe_index,
         )?;
-        
+
         for (i, executor) in executors.iter().enumerate() {
-            Self::check_signature(
-                messages, 
-                signatures[i], 
-                *executor
-            )?;
+            Self::check_signature(messages, signatures[i], *executor)?;
         }
         Ok(())
     }

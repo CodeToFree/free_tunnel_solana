@@ -11,8 +11,8 @@ pub struct BasicStorage {
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct TokensAndProposers {
-    pub tokens: [Pubkey; 256],              // support up to 256 tokens
-    pub proposers: [Pubkey; 256],           // support up to 256 proposers
+    pub tokens: [Pubkey; 256],    // support up to 256 tokens
+    pub proposers: [Pubkey; 256], // support up to 256 proposers
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]

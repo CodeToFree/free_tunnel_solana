@@ -21,8 +21,8 @@ impl Constants {
     pub const PREFIX_UNLOCK: &'static [u8] = b"unlock";
 
     // Data account size
-    pub const SIZE_BASIC_STORAGE: usize = 32 + 8;     // admin and executors_group_length
-    pub const SIZE_TOKENS_PROPOSERS: usize = 32 * 256 + 32 * 256;       // tokens and proposers
-    pub const SIZE_EXECUTORS_STORAGE: usize = 2 + 1 + 8 + 20 * 256;     // index, threshold, active_since and executors
+    pub const SIZE_BASIC_STORAGE: usize = 32 + 8; // admin and executors_group_length
+    pub const SIZE_TOKENS_PROPOSERS: usize = 32 * 256 + 32 * 256; // tokens and proposers
+    pub const SIZE_EXECUTORS_STORAGE: usize = 2 + 1 + 8 + 20 * 256; // index, threshold, active_since and executors
     pub const SIZE_ADDRESS_STORAGE: usize = 32;
 }
