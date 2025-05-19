@@ -1,3 +1,15 @@
+use solana_program::{
+    account_info::AccountInfo,
+    clock::Clock,
+    entrypoint::ProgramResult,
+    program_error::ProgramError,
+    pubkey::Pubkey,
+    sysvar::Sysvar,
+};
+
+use crate::{constants::Constants, state::TokensAndProposers};
+use crate::error::FreeTunnelError;
+use crate::utils::DataAccountUtils;
 pub struct ReqId {
     /// In format of: `version:uint8|createdTime:uint40|action:uint8`
     ///     + `tokenIndex:uint8|amount:uint64|from:uint8|to:uint8|(TBD):uint112`
@@ -5,116 +17,145 @@ pub struct ReqId {
 }
 
 impl ReqId {
-    // public(friend) fun versionFrom(reqId: &vector<u8>): u8 {
-    //     *vector::borrow(reqId, 0)
-    // }
+    pub fn version(&self) -> u8 {
+        self.data[0]
+    }
 
-    // public(friend) fun createdTimeFrom(reqId: &vector<u8>): u64 {
-    //     let time = (*vector::borrow(reqId, 1) as u64);
-    //     let i = 2;
-    //     while (i < 6) {
-    //         time = (time << 8) + (*vector::borrow(reqId, i) as u64);
-    //         i = i + 1;
-    //     };
-    //     time
-    // }
+    pub fn created_time(&self) -> u64 {
+        let mut time = 0;
+        for i in 1..6 {
+            time = (time << 8) + self.data[i] as u64;
+        }
+        time
+    }
 
-    // public(friend) fun checkCreatedTimeFrom(reqId: &vector<u8>): u64 {
-    //     let time = createdTimeFrom(reqId);
-    //     assert!(time > now_seconds() - PROPOSE_PERIOD(), ECREATED_TIME_TOO_EARLY);
-    //     assert!(time < now_seconds() + 60, ECREATED_TIME_TOO_LATE);
-    //     time
-    // }
+    pub fn checked_created_time(&self) -> Result<u64, ProgramError> {
+        let time = self.created_time();
+        let now = Clock::get()?.unix_timestamp;
+        if ((time + Constants::PROPOSE_PERIOD) as i64) < now {
+            Err(FreeTunnelError::CreatedTimeTooEarly.into())
+        } else if (time as i64) > now + 60 {
+            Err(FreeTunnelError::CreatedTimeTooLate.into())
+        } else {
+            Ok(time)
+        }
+    }
 
-    // public(friend) fun actionFrom(reqId: &vector<u8>): u8 {
-    //     *vector::borrow(reqId, 6)
-    // }
+    pub fn action(&self) -> u8 {
+        self.data[6]
+    }
 
-    // public(friend) fun decodeTokenIndex(reqId: &vector<u8>): u8 {
-    //     *vector::borrow(reqId, 7)
-    // }
+    pub fn token_index(&self) -> u8 {
+        self.data[7]
+    }
 
-    // public(friend) fun tokenIndexFrom(reqId: &vector<u8>): u8 acquires ReqHelpersStorage {
-    //     let tokenIndex = decodeTokenIndex(reqId);
-    //     let storeR = borrow_global_mut<ReqHelpersStorage>(@free_tunnel_aptos);
-    //     assert!(table::contains(&storeR.tokens, tokenIndex), ETOKEN_INDEX_NONEXISTENT);
-    //     tokenIndex
-    // }
+    pub fn checked_token_index(
+        &self,
+        data_account_tokens_proposers: &AccountInfo,
+    ) -> Result<u8, ProgramError> {
+        let TokensAndProposers {
+            tokens, ..
+        } = DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
+        if tokens[self.token_index() as usize] == Pubkey::default() {
+            Err(FreeTunnelError::TokenIndexNonExistent.into())
+        } else {
+            Ok(self.token_index())
+        }
+    }
 
-    // public(friend) fun tokenMetadataFrom(reqId: &vector<u8>): Object<Metadata> acquires ReqHelpersStorage {
-    //     let tokenIndex = decodeTokenIndex(reqId);
-    //     let storeR = borrow_global_mut<ReqHelpersStorage>(@free_tunnel_aptos);
-    //     assert!(table::contains(&storeR.tokens, tokenIndex), ETOKEN_INDEX_NONEXISTENT);
-    //     *table::borrow(&storeR.tokens, tokenIndex)
-    // }
+    pub fn checked_token_pubkey_and_decimal(
+        &self,
+        data_account_tokens_proposers: &AccountInfo,
+    ) -> Result<(Pubkey, u8), ProgramError> {
+        let TokensAndProposers {
+            tokens, decimals, ..
+        } = DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
+        let token_pubkey = tokens[self.token_index() as usize];
+        if token_pubkey == Pubkey::default() {
+            Err(FreeTunnelError::TokenIndexNonExistent.into())
+        } else {
+            Ok((token_pubkey, decimals[self.token_index() as usize]))
+        }
+    }
+    
+    pub fn raw_amount(&self) -> u64 {
+        u64::from_be_bytes(self.data[8..16].try_into().unwrap())
+    }
 
-    // fun decodeAmount(reqId: &vector<u8>): u64 {
-    //     let amount = (*vector::borrow(reqId, 8) as u64);
-    //     let i = 9;
-    //     while (i < 16) {
-    //         amount = (amount << 8) + (*vector::borrow(reqId, i) as u64);
-    //         i = i + 1;
-    //     };
-    //     assert!(amount > 0, EAMOUNT_CANNOT_BE_ZERO);
-    //     amount
-    // }
+    pub fn checked_amount(
+        &self,
+        data_account_tokens_proposers: &AccountInfo,
+    ) -> Result<u64, ProgramError> {
+        let amount = self.raw_amount();
+        if amount == 0 {
+            Err(FreeTunnelError::AmountCannotBeZero.into())
+        } else {
+            let (_, decimal) = self.checked_token_pubkey_and_decimal(data_account_tokens_proposers)?;
+            if decimal > 6 {
+                Ok(amount * 10u64.pow(decimal as u32 - 6))
+            } else if decimal < 6 {
+                Ok(amount / 10u64.pow(6 - decimal as u32))
+            } else {
+                Ok(amount)
+            }
+        }
+    }
 
-    // public(friend) fun amountFrom(reqId: &vector<u8>): u64 acquires ReqHelpersStorage {
-    //     let storeR = borrow_global_mut<ReqHelpersStorage>(@free_tunnel_aptos);
-    //     let amount = decodeAmount(reqId);
-    //     let tokenIndex = decodeTokenIndex(reqId);
-    //     let decimals = fungible_asset::decimals<Metadata>(*storeR.tokens.borrow(tokenIndex)) as u64;
-    //     if (decimals > 6) {
-    //         amount = amount * math64::pow(10, decimals - 6);
-    //     } else if (decimals < 6) {
-    //         amount = amount / math64::pow(10, 6 - decimals);
-    //     };
-    //     amount
-    // }
+    pub fn msg_from_req_signing_message(&self) -> Vec<u8> {
+        let specific_action = self.action() & 0x0f;
+        let mut msg = Constants::ETH_SIGN_HEADER.to_vec();
+        match specific_action {
+            1 => {
+                let length = 3 + Constants::BRIDGE_CHANNEL.len() + 29 + 66;
+                msg.extend_from_slice(length.to_string().as_bytes());
+                msg.extend_from_slice(b"[");
+                msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
+                msg.extend_from_slice(b"]\n");
+                msg.extend_from_slice(b"Sign to execute a lock-mint:\n");
+                msg.extend_from_slice(b"0x");
+                msg.extend_from_slice(&self.data);
+                msg
+            }
+            2 => {
+                let length = 3 + Constants::BRIDGE_CHANNEL.len() + 31 + 66;
+                msg.extend_from_slice(length.to_string().as_bytes());
+                msg.extend_from_slice(b"[");
+                msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
+                msg.extend_from_slice(b"]\n");
+                msg.extend_from_slice(b"Sign to execute a burn-unlock:\n");
+                msg.extend_from_slice(b"0x");
+                msg.extend_from_slice(&self.data);
+                msg
+            }
+            3 => {
+                let length = 3 + Constants::BRIDGE_CHANNEL.len() + 29 + 66;
+                msg.extend_from_slice(length.to_string().as_bytes());
+                msg.extend_from_slice(b"[");
+                msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
+                msg.extend_from_slice(b"]\n");
+                msg.extend_from_slice(b"Sign to execute a burn-mint:\n");
+                msg.extend_from_slice(b"0x");
+                msg.extend_from_slice(&self.data);
+                msg
+            }
+            _ => vec![],
+        }
+    }
 
-    // public(friend) fun msgFromReqSigningMessage(reqId: &vector<u8>): vector<u8> {
-    //     assert!(vector::length(reqId) == 32, EINVALID_REQ_ID_LENGTH);
-    //     let specificAction = actionFrom(reqId) & 0x0f;
-    //     if (specificAction == 1) {
-    //         let msg = ETH_SIGN_HEADER();
-    //         vector::append(&mut msg, smallU64ToString(3 + vector::length(&BRIDGE_CHANNEL()) + 29 + 66));
-    //         vector::append(&mut msg, b"[");
-    //         vector::append(&mut msg, BRIDGE_CHANNEL());
-    //         vector::append(&mut msg, b"]\n");
-    //         vector::append(&mut msg, b"Sign to execute a lock-mint:\n");
-    //         vector::append(&mut msg, hexToString(reqId, true));
-    //         msg
-    //     } else if (specificAction == 2) {
-    //         let msg = ETH_SIGN_HEADER();
-    //         vector::append(&mut msg, smallU64ToString(3 + vector::length(&BRIDGE_CHANNEL()) + 31 + 66));
-    //         vector::append(&mut msg, b"[");
-    //         vector::append(&mut msg, BRIDGE_CHANNEL());
-    //         vector::append(&mut msg, b"]\n");
-    //         vector::append(&mut msg, b"Sign to execute a burn-unlock:\n");
-    //         vector::append(&mut msg, hexToString(reqId, true));
-    //         msg
-    //     } else if (specificAction == 3) {
-    //         let msg = ETH_SIGN_HEADER();
-    //         vector::append(&mut msg, smallU64ToString(3 + vector::length(&BRIDGE_CHANNEL()) + 29 + 66));
-    //         vector::append(&mut msg, b"[");
-    //         vector::append(&mut msg, BRIDGE_CHANNEL());
-    //         vector::append(&mut msg, b"]\n");
-    //         vector::append(&mut msg, b"Sign to execute a burn-mint:\n");
-    //         vector::append(&mut msg, hexToString(reqId, true));
-    //         msg
-    //     } else {
-    //         vector::empty<u8>()
-    //     }
-    // }
+    pub fn assert_from_chain_only(&self) -> ProgramResult {
+        if  self.data[16] != Constants::CHAIN {
+            Err(FreeTunnelError::NotFromCurrentChain.into())
+        } else {
+            Ok(())
+        }
+    }
 
-    // public(friend) fun assertFromChainOnly(reqId: &vector<u8>) {
-    //     assert!(CHAIN == *vector::borrow(reqId, 16), ENOT_FROM_CURRENT_CHAIN);
-    // }
+    pub fn assert_to_chain_only(&self) -> ProgramResult {
+        if self.data[17] != Constants::CHAIN {
+            Err(FreeTunnelError::NotToCurrentChain.into())
+        } else {
+            Ok(())
+        }
+    }
 
-    // public(friend) fun assertToChainOnly(reqId: &vector<u8>) {
-    //     assert!(CHAIN == *vector::borrow(reqId, 17), ENOT_TO_CURRENT_CHAIN);
-    // }
-
-    // #[test]
-    // fun testDecodingReqid() {
 }

@@ -24,6 +24,12 @@ pub enum FreeTunnelError {
     ExecutorsNotYetActive,
     ExecutorsOfNextIndexIsActive,
     NonExecutors,
+    CreatedTimeTooEarly,
+    CreatedTimeTooLate,
+    TokenIndexNonExistent,
+    AmountCannotBeZero,
+    NotFromCurrentChain,
+    NotToCurrentChain,
 }
 
 impl From<FreeTunnelError> for ProgramError {

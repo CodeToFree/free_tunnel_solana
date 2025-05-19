@@ -13,6 +13,7 @@ pub struct BasicStorage {
 pub struct TokensAndProposers {
     pub tokens: [Pubkey; 256],    // support up to 256 tokens
     pub proposers: [Pubkey; 256], // support up to 256 proposers
+    pub decimals: [u8; 256],      // decimals of each token
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]

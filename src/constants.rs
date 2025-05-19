@@ -5,6 +5,7 @@ impl Constants {
     pub const ETH_ZERO_ADDRESS: EthAddress = [0; 20];
 
     // Bridge related
+    pub const CHAIN: u8 = 0xff;
     pub const BRIDGE_CHANNEL: &'static [u8] = b"Solana Bridge";
     pub const PROPOSE_PERIOD: u64 = 48 * 60 * 60;
     pub const EXPIRE_PERIOD: u64 = 72 * 60 * 60;
@@ -22,7 +23,7 @@ impl Constants {
 
     // Data account size
     pub const SIZE_BASIC_STORAGE: usize = 32 + 8; // admin and executors_group_length
-    pub const SIZE_TOKENS_PROPOSERS: usize = 32 * 256 + 32 * 256; // tokens and proposers
+    pub const SIZE_TOKENS_PROPOSERS: usize = 32 * 256 + 32 * 256 + 1 * 256; // tokens (and decimals) and proposers
     pub const SIZE_EXECUTORS_STORAGE: usize = 2 + 1 + 8 + 20 * 256; // index, threshold, active_since and executors
     pub const SIZE_ADDRESS_STORAGE: usize = 32;
 }
