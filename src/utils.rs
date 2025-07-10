@@ -14,14 +14,24 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
-use crate::constants::{Constants, EthAddress};
-use crate::error::{DataAccountError, FreeTunnelError};
-use crate::state::{BasicStorage, ExecutorsInfo};
+use crate::{
+    constants::{Constants, EthAddress},
+    error::{DataAccountError, FreeTunnelError},
+    state::{BasicStorage, ExecutorsInfo},
+};
 
 pub struct SignatureUtils;
 pub struct DataAccountUtils;
 
 impl SignatureUtils {
+    pub(crate) fn log10(n: u64) -> u64 {
+        if n == 0 {
+            0
+        } else {
+            (n as f64).log10().floor() as u64
+        }
+    }
+
     pub(crate) fn join_address_list(eth_addrs: &Vec<EthAddress>) -> Vec<u8> {
         let mut result = Vec::new();
         for addr in eth_addrs {
@@ -120,8 +130,8 @@ impl SignatureUtils {
 
         // Check timestamp for next index
         let BasicStorage {
-            admin: _,
             executors_group_length,
+            ..
         } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if executors_group_length > exe_index + 1 {
             let ExecutorsInfo {

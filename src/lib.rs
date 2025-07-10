@@ -14,6 +14,8 @@ use solana_program::{
 
 pub mod constants;
 pub mod error;
+pub mod instruction;
+pub mod processor;
 pub mod state;
 pub mod utils;
 

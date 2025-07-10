@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod utils_test {
-
     use crate::utils::SignatureUtils;
     use hex;
 
@@ -29,5 +28,40 @@ mod utils_test {
             .try_into()
             .unwrap();
         assert_eq!(eth_address, eth_address_expected);
+    }
+
+    #[test]
+    fn test_join_address_list() {
+        let addrs = vec![[0; 20], [1; 20]];
+        let result = SignatureUtils::join_address_list(&addrs);
+        let expected: &'static str = "0x0000000000000000000000000000000000000000\n0x0101010101010101010101010101010101010101\n";
+        assert_eq!(result, expected.as_bytes());
+    }
+
+    #[test]
+    fn test_cmp_addr_list() {
+        let eth_addr1 = [0; 20];
+        let eth_addr2 = [1; 20];
+        let eth_addr3 = [2; 20];
+        assert!(SignatureUtils::cmp_addr_list(
+            &vec![eth_addr1, eth_addr2],
+            &vec![eth_addr1]
+        ));
+        assert!(!SignatureUtils::cmp_addr_list(
+            &vec![eth_addr1],
+            &vec![eth_addr1, eth_addr2]
+        ));
+        assert!(SignatureUtils::cmp_addr_list(
+            &vec![eth_addr1, eth_addr2],
+            &vec![eth_addr1, eth_addr1]
+        ));
+        assert!(!SignatureUtils::cmp_addr_list(
+            &vec![eth_addr2, eth_addr1],
+            &vec![eth_addr2, eth_addr2]
+        ));
+        assert!(!SignatureUtils::cmp_addr_list(
+            &vec![eth_addr2, eth_addr3],
+            &vec![eth_addr2, eth_addr3]
+        ));
     }
 }

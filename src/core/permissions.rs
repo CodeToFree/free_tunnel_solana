@@ -1,36 +1,107 @@
-use borsh::{BorshDeserialize, BorshSerialize};
-use std::{cmp::Ordering, collections::HashSet};
-
 use solana_program::{
     account_info::AccountInfo,
     clock::Clock,
     entrypoint::ProgramResult,
-    keccak,
-    program::invoke_signed,
-    program_error::ProgramError,
     pubkey::Pubkey,
-    secp256k1_recover::secp256k1_recover,
-    system_instruction,
     sysvar::{rent::Rent, Sysvar},
 };
 
-use crate::constants::{Constants, EthAddress};
-use crate::error::{DataAccountError, FreeTunnelError};
-use crate::state::{BasicStorage, ExecutorsInfo};
-use crate::utils::SignatureUtils;
+use crate::{
+    constants::{Constants, EthAddress},
+    error::FreeTunnelError,
+    state::{BasicStorage, ExecutorsInfo, TokensAndProposers},
+    utils::{DataAccountUtils, SignatureUtils},
+};
 
 pub struct Permissions;
 
 impl Permissions {
-    fn log10(n: u64) -> u64 {
-        if n == 0 {
-            0
+    pub(crate) fn assert_only_admin(
+        data_account_basic_storage: &AccountInfo,
+        signer: &Pubkey,
+    ) -> ProgramResult {
+        let basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        if &basic_storage.admin != signer {
+            Err(FreeTunnelError::NotAdmin.into())
         } else {
-            (n as f64).log10().floor() as u64
+            Ok(())
         }
     }
 
-    fn update_executors(
+    fn assert_only_executors(
+        data_account_token_proposers: &AccountInfo,
+        signer: &Pubkey,
+    ) -> ProgramResult {
+        let token_proposers: TokensAndProposers =
+            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+        if !token_proposers.proposers.contains(&signer) {
+            Err(FreeTunnelError::NotProposer.into())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(crate) fn add_proposer_internal(
+        data_account_token_proposers: &AccountInfo,
+        proposer: &Pubkey,
+    ) -> ProgramResult {
+        let mut token_proposers: TokensAndProposers =
+            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+        if token_proposers.proposers.contains(&proposer) {
+            Err(FreeTunnelError::AlreadyProposer.into())
+        } else {
+            token_proposers.proposers.push(proposer.clone());
+            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+        }
+    }
+
+    pub(crate) fn remove_proposer_internal(
+        data_account_token_proposers: &AccountInfo,
+        proposer: &Pubkey,
+    ) -> ProgramResult {
+        let mut token_proposers: TokensAndProposers =
+            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+        if !token_proposers.proposers.contains(proposer) {
+            Err(FreeTunnelError::NotExistingProposer.into())
+        } else {
+            token_proposers.proposers.retain(|p| p != proposer);
+            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+        }
+    }
+
+    pub(crate) fn init_executors_internal(
+        data_account_basic_storage: &AccountInfo,
+        data_account_executors_at_index: &AccountInfo,
+        executors: &Vec<EthAddress>,
+        threshold: u64,
+        exe_index: u64,
+    ) -> ProgramResult {
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        if threshold > executors.len() as u64 {
+            Err(FreeTunnelError::NotMeetThreshold.into())
+        } else if basic_storage.executors_group_length != 0 {
+            Err(FreeTunnelError::ExecutorsAlreadyInitialized.into())
+        } else if threshold == 0 {
+            Err(FreeTunnelError::ThresholdMustBeGreaterThanZero.into())
+        } else {
+            basic_storage.executors_group_length = exe_index + 1;
+            SignatureUtils::check_executors_not_duplicated(executors)?;
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+            DataAccountUtils::write_account_data(
+                data_account_executors_at_index,
+                ExecutorsInfo {
+                    index: exe_index,
+                    threshold,
+                    active_since: 1,
+                    executors: executors.clone(),
+                },
+            )
+        }
+    }
+
+    pub(crate) fn update_executors(
         data_account_basic_storage: &AccountInfo,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
@@ -63,9 +134,9 @@ impl Permissions {
         let length = 3
             + Constants::BRIDGE_CHANNEL.len()
             + (29 + 43 * new_executors.len())
-            + (12 + Self::log10(threshold) as usize + 1)
+            + (12 + SignatureUtils::log10(threshold) as usize + 1)
             + (15 + 10)
-            + (25 + Self::log10(exe_index) as usize + 1);
+            + (25 + SignatureUtils::log10(exe_index) as usize + 1);
         msg.extend_from_slice(length.to_string().as_bytes());
         msg.extend_from_slice(b"[");
         msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
@@ -81,6 +152,7 @@ impl Permissions {
         msg.extend_from_slice(b"Current executors index: ");
         msg.extend_from_slice(exe_index.to_string().as_bytes());
 
+        // Check multi signatures
         SignatureUtils::check_multi_signatures(
             data_account_basic_storage,
             data_account_current_executors,
@@ -90,37 +162,45 @@ impl Permissions {
             executors,
             exe_index,
         )?;
-        
-        
-        
 
-        Ok(())
+        // Add executors to storage
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let new_index = exe_index + 1;
+        if new_index == basic_storage.executors_group_length {
+            basic_storage.executors_group_length = new_index + 1;
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+            DataAccountUtils::write_account_data(
+                data_account_next_executors,
+                ExecutorsInfo {
+                    index: new_index,
+                    threshold,
+                    active_since,
+                    executors: new_executors.clone(),
+                },
+            )
+        } else {
+            let ExecutorsInfo {
+                index: _,
+                threshold: next_threshold,
+                active_since: next_active_since,
+                executors: next_executors,
+            } = DataAccountUtils::read_account_data(data_account_next_executors)?;
+            if active_since < next_active_since
+                || threshold < next_threshold
+                || !SignatureUtils::cmp_addr_list(new_executors, &next_executors)
+            {
+                return Err(FreeTunnelError::FailedToOverwriteExistingExecutors.into());
+            }
+            DataAccountUtils::write_account_data(
+                data_account_next_executors,
+                ExecutorsInfo {
+                    index: new_index,
+                    threshold,
+                    active_since,
+                    executors: new_executors.clone(),
+                },
+            )
+        }
     }
-
-    // ) acquires PermissionsStorage {
-    //     let storeP = borrow_global_mut<PermissionsStorage>(@free_tunnel_aptos);
-    //     let newIndex = exeIndex + 1;
-    //     if (newIndex == vector::length(&storeP._exeActiveSinceForIndex)) {
-    //         vector::push_back(&mut storeP._executorsForIndex, newExecutors);
-    //         vector::push_back(&mut storeP._exeThresholdForIndex, threshold);
-    //         vector::push_back(&mut storeP._exeActiveSinceForIndex, activeSince);
-    //     } else {
-    //         assert!(
-    //             activeSince >= *vector::borrow(&storeP._exeActiveSinceForIndex, newIndex),
-    //             EFAILED_TO_OVERWRITE_EXISTING_EXECUTORS
-    //         );
-    //         assert!(
-    //             threshold >= *vector::borrow(&storeP._exeThresholdForIndex, newIndex),
-    //             EFAILED_TO_OVERWRITE_EXISTING_EXECUTORS
-    //         );
-    //         assert!(
-    //             cmpAddrList(newExecutors, *vector::borrow(&storeP._executorsForIndex, newIndex)),
-    //             EFAILED_TO_OVERWRITE_EXISTING_EXECUTORS
-    //         );
-    //         *vector::borrow_mut(&mut storeP._executorsForIndex, newIndex) = newExecutors;
-    //         *vector::borrow_mut(&mut storeP._exeThresholdForIndex, newIndex) = threshold;
-    //         *vector::borrow_mut(&mut storeP._exeActiveSinceForIndex, newIndex) = activeSince;
-    //     };
-    //     event::emit(ExecutorsUpdated { executors: newExecutors, threshold, activeSince, exeIndex: newIndex });
-    // }
 }

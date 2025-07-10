@@ -27,7 +27,7 @@ pub enum FreeTunnelError {
     NonExecutors,
 
     // Req Helpers
-    CreatedTimeTooEarly,
+    CreatedTimeTooEarly = 401,
     CreatedTimeTooLate,
     TokenIndexNonExistent,
     AmountCannotBeZero,
@@ -35,9 +35,15 @@ pub enum FreeTunnelError {
     NotToCurrentChain,
 
     // Permissions
+    NotAdmin = 501,
+    NotProposer,
+    AlreadyProposer,
+    NotExistingProposer,
+    ExecutorsAlreadyInitialized,
     ThresholdMustBeGreaterThanZero,
     ActiveSinceShouldAfter36h,
     ActiveSinceShouldWithin5d,
+    FailedToOverwriteExistingExecutors,
 }
 
 impl From<FreeTunnelError> for ProgramError {
