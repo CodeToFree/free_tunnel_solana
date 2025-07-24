@@ -267,4 +267,8 @@ impl DataAccountUtils {
         Data::try_from_slice(&account_data[4..4 + data_len])
             .map_err(|_| ProgramError::InvalidAccountData)
     }
+
+    pub fn is_empty_account(data_account: &AccountInfo) -> bool {
+        data_account.data_is_empty()
+    }
 }

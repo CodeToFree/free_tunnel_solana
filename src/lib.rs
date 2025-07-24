@@ -20,6 +20,8 @@ pub mod state;
 pub mod utils;
 
 pub mod core {
+    pub mod atomic_lock;
+    pub mod atomic_mint;
     pub mod permissions;
     pub mod req_helpers;
 }

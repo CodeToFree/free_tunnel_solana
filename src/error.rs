@@ -29,6 +29,8 @@ pub enum FreeTunnelError {
     // Req Helpers
     CreatedTimeTooEarly = 401,
     CreatedTimeTooLate,
+    TokenIndexOccupied,
+    TokenIndexCannotBeZero,
     TokenIndexNonExistent,
     AmountCannotBeZero,
     NotFromCurrentChain,
@@ -44,6 +46,10 @@ pub enum FreeTunnelError {
     ActiveSinceShouldAfter36h,
     ActiveSinceShouldWithin5d,
     FailedToOverwriteExistingExecutors,
+
+    // Atomic Lock & Mint
+    NotLockMint = 601,
+    InvalidReqId,
 }
 
 impl From<FreeTunnelError> for ProgramError {

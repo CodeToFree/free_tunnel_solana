@@ -1,8 +1,12 @@
+use solana_program::pubkey::Pubkey;
+
 pub struct Constants;
 pub type EthAddress = [u8; 20];
 
 impl Constants {
+    // Zero address and placeholder
     pub const ETH_ZERO_ADDRESS: EthAddress = [0; 20];
+    pub const EXECUTED_PLACEHOLDER: Pubkey = Pubkey::new_from_array([0xed; 32]);
 
     // Bridge related
     pub const CHAIN: u8 = 0xff;

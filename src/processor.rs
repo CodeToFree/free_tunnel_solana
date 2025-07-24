@@ -3,7 +3,8 @@ use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, pubke
 use crate::{
     constants::{Constants, EthAddress},
     core::permissions::Permissions,
-    state::BasicStorage,
+    error::FreeTunnelError,
+    state::{BasicStorage, TokensAndProposers},
     utils::DataAccountUtils,
 };
 
@@ -167,5 +168,80 @@ impl Processor {
             executors,
             exe_index,
         )
+    }
+
+    fn process_add_token<'a>(
+        program_id: &Pubkey,
+        signer_account: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
+        data_account_token_proposers: &AccountInfo<'a>,
+        token_index: u8,
+        token_pubkey: &Pubkey,
+    ) -> ProgramResult {
+        // Check data account conditions
+        DataAccountUtils::check_account_match(
+            program_id,
+            data_account_basic_storage,
+            Constants::BASIC_STORAGE,
+            b"",
+        )?;
+        DataAccountUtils::check_account_match(
+            program_id,
+            data_account_token_proposers,
+            Constants::TOKENS_PROPOSERS,
+            b"",
+        )?;
+
+        // Check permissions
+        Permissions::assert_only_admin(data_account_basic_storage, signer_account.key)?;
+
+        // Process
+        let mut token_proposers: TokensAndProposers =
+            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+        if token_proposers.tokens[token_index as usize] != Pubkey::default() {
+            Err(FreeTunnelError::TokenIndexOccupied.into())
+        } else if token_index == 0 {
+            Err(FreeTunnelError::TokenIndexCannotBeZero.into())
+        } else {
+            token_proposers.tokens[token_index as usize] = *token_pubkey;
+            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+        }
+    }
+
+    fn process_remove_token<'a>(
+        program_id: &Pubkey,
+        signer_account: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
+        data_account_token_proposers: &AccountInfo<'a>,
+        token_index: u8,
+    ) -> ProgramResult {
+        // Check data account conditions
+        DataAccountUtils::check_account_match(
+            program_id,
+            data_account_basic_storage,
+            Constants::BASIC_STORAGE,
+            b"",
+        )?;
+        DataAccountUtils::check_account_match(
+            program_id,
+            data_account_token_proposers,
+            Constants::TOKENS_PROPOSERS,
+            b"",
+        )?;
+
+        // Check permissions
+        Permissions::assert_only_admin(data_account_basic_storage, signer_account.key)?;
+
+        // Process
+        let mut token_proposers: TokensAndProposers =
+            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+        if token_proposers.tokens[token_index as usize] == Pubkey::default() {
+            Err(FreeTunnelError::TokenIndexNonExistent.into())
+        } else if token_index == 0 {
+            Err(FreeTunnelError::TokenIndexCannotBeZero.into())
+        } else {
+            token_proposers.tokens[token_index as usize] = Pubkey::default();
+            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+        }
     }
 }
