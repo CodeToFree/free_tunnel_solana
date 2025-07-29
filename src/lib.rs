@@ -1,5 +1,6 @@
 #![allow(unexpected_cfgs)]
 use borsh::{BorshDeserialize, BorshSerialize};
+
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint,
@@ -8,9 +9,9 @@ use solana_program::{
     program::invoke,
     program_error::ProgramError,
     pubkey::Pubkey,
-    system_instruction,
     sysvar::{rent::Rent, Sysvar},
 };
+use solana_system_interface::instruction::create_account;
 
 pub mod constants;
 pub mod error;
@@ -117,7 +118,7 @@ fn process_initialize_counter(
 
     // Create the counter account
     invoke(
-        &system_instruction::create_account(
+        &create_account(
             payer_account.key,    // Account paying for the new account
             counter_account.key,  // Account to be created
             required_lamports,    // Amount of lamports to transfer to the new account

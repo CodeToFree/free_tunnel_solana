@@ -57,6 +57,7 @@ pub enum FreeTunnelError {
 
     // Signers
     ProposerNotSigner = 701,
+    AdminNotSigner,
 }
 
 impl From<FreeTunnelError> for ProgramError {

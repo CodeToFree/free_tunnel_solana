@@ -13,9 +13,9 @@ pub struct Processor;
 impl Processor {
     fn process_initialize_executors<'a>(
         program_id: &Pubkey,
-        signer_account: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_executors_at_index: &AccountInfo<'a>,
+        account_admin: &AccountInfo<'a>,
         executors: &Vec<EthAddress>,
         threshold: u64,
         exe_index: u64,
@@ -34,10 +34,16 @@ impl Processor {
             &exe_index.to_le_bytes(),
         )?;
 
+        // Check signer
+        if !account_admin.is_signer {
+            return Err(FreeTunnelError::AdminNotSigner.into());
+        }
+
         // Process
         Permissions::init_executors_internal(
             data_account_basic_storage,
             data_account_executors_at_index,
+            account_admin.key,
             executors,
             threshold,
             exe_index,

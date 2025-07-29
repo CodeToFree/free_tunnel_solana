@@ -1,10 +1,6 @@
 use solana_program::{
-    account_info::AccountInfo,
-    clock::Clock,
-    entrypoint::ProgramResult,
-    program::invoke_signed,
-    pubkey::Pubkey,
-    sysvar::{rent::Rent, Sysvar},
+    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, program::invoke_signed,
+    pubkey::Pubkey, sysvar::Sysvar,
 };
 use spl_token::instruction::transfer;
 use std::mem::size_of;
@@ -13,7 +9,7 @@ use crate::{
     constants::{Constants, EthAddress},
     core::{permissions::Permissions, req_helpers::ReqId},
     error::FreeTunnelError,
-    state::{BasicStorage, ExecutorsInfo, ProposedLock, TokensAndProposers},
+    state::{ProposedLock, TokensAndProposers},
     utils::{DataAccountUtils, SignatureUtils},
 };
 

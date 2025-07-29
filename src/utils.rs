@@ -10,9 +10,9 @@ use solana_program::{
     program_error::ProgramError,
     pubkey::Pubkey,
     secp256k1_recover::secp256k1_recover,
-    system_instruction,
     sysvar::{rent::Rent, Sysvar},
 };
+use solana_system_interface::instruction::create_account;
 
 use crate::{
     constants::{Constants, EthAddress},
@@ -212,7 +212,7 @@ impl DataAccountUtils {
             let rent = Rent::get()?;
             let required_lamports = rent.minimum_balance(data_length);
             invoke_signed(
-                &system_instruction::create_account(
+                &create_account(
                     payer_account.key,
                     target_account.key,
                     required_lamports,

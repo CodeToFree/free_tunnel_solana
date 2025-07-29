@@ -1,9 +1,6 @@
 use solana_program::{
-    account_info::AccountInfo,
-    clock::Clock,
-    entrypoint::ProgramResult,
-    pubkey::Pubkey,
-    sysvar::{rent::Rent, Sysvar},
+    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, pubkey::Pubkey,
+    sysvar::Sysvar,
 };
 
 use crate::{
@@ -73,12 +70,14 @@ impl Permissions {
     pub(crate) fn init_executors_internal(
         data_account_basic_storage: &AccountInfo,
         data_account_executors_at_index: &AccountInfo,
+        admin: &Pubkey,
         executors: &Vec<EthAddress>,
         threshold: u64,
         exe_index: u64,
     ) -> ProgramResult {
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        Self::assert_only_admin(data_account_basic_storage, admin)?;
         if threshold > executors.len() as u64 {
             Err(FreeTunnelError::NotMeetThreshold.into())
         } else if basic_storage.executors_group_length != 0 {
