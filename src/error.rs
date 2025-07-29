@@ -49,7 +49,14 @@ pub enum FreeTunnelError {
 
     // Atomic Lock & Mint
     NotLockMint = 601,
+    NotBurnUnlock,
     InvalidReqId,
+    InvalidRecipient,
+    WaitUntilExpired,
+    ContractSignerMismatch,
+
+    // Signers
+    ProposerNotSigner = 701,
 }
 
 impl From<FreeTunnelError> for ProgramError {

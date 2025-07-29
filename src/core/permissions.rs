@@ -29,7 +29,7 @@ impl Permissions {
         }
     }
 
-    fn assert_only_executors(
+    pub(crate) fn assert_only_proposer(
         data_account_token_proposers: &AccountInfo,
         signer: &Pubkey,
     ) -> ProgramResult {

@@ -8,6 +8,9 @@ impl Constants {
     pub const ETH_ZERO_ADDRESS: EthAddress = [0; 20];
     pub const EXECUTED_PLACEHOLDER: Pubkey = Pubkey::new_from_array([0xed; 32]);
 
+    // Contract signer
+    pub const CONTRACT_SIGNER: &'static [u8] = b"contract-signer";
+
     // Bridge related
     pub const CHAIN: u8 = 0xff;
     pub const BRIDGE_CHANNEL: &'static [u8] = b"Solana Bridge";
