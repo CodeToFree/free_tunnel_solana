@@ -78,7 +78,7 @@ impl Processor {
         program_id: &Pubkey,
         signer_account: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
-        data_account_token_proposers: &AccountInfo<'a>,
+        data_account_tokens_proposers: &AccountInfo<'a>,
         new_proposer: &Pubkey,
     ) -> ProgramResult {
         // Check data account conditions
@@ -90,7 +90,7 @@ impl Processor {
         )?;
         DataAccountUtils::check_account_match(
             program_id,
-            data_account_token_proposers,
+            data_account_tokens_proposers,
             Constants::TOKENS_PROPOSERS,
             b"",
         )?;
@@ -99,14 +99,14 @@ impl Processor {
         Permissions::assert_only_admin(data_account_basic_storage, signer_account.key)?;
 
         // Process
-        Permissions::add_proposer_internal(data_account_token_proposers, new_proposer)
+        Permissions::add_proposer_internal(data_account_tokens_proposers, new_proposer)
     }
 
     fn process_remove_proposer<'a>(
         program_id: &Pubkey,
         signer_account: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
-        data_account_token_proposers: &AccountInfo<'a>,
+        data_account_tokens_proposers: &AccountInfo<'a>,
         proposer: &Pubkey,
     ) -> ProgramResult {
         // Check data account conditions
@@ -118,7 +118,7 @@ impl Processor {
         )?;
         DataAccountUtils::check_account_match(
             program_id,
-            data_account_token_proposers,
+            data_account_tokens_proposers,
             Constants::TOKENS_PROPOSERS,
             b"",
         )?;
@@ -127,7 +127,7 @@ impl Processor {
         Permissions::assert_only_admin(data_account_basic_storage, signer_account.key)?;
 
         // Process
-        Permissions::remove_proposer_internal(data_account_token_proposers, proposer)
+        Permissions::remove_proposer_internal(data_account_tokens_proposers, proposer)
     }
 
     fn process_update_executors<'a>(
@@ -180,7 +180,7 @@ impl Processor {
         program_id: &Pubkey,
         signer_account: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
-        data_account_token_proposers: &AccountInfo<'a>,
+        data_account_tokens_proposers: &AccountInfo<'a>,
         token_index: u8,
         token_pubkey: &Pubkey,
     ) -> ProgramResult {
@@ -193,7 +193,7 @@ impl Processor {
         )?;
         DataAccountUtils::check_account_match(
             program_id,
-            data_account_token_proposers,
+            data_account_tokens_proposers,
             Constants::TOKENS_PROPOSERS,
             b"",
         )?;
@@ -203,14 +203,14 @@ impl Processor {
 
         // Process
         let mut token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         if token_proposers.tokens[token_index as usize] != Pubkey::default() {
             Err(FreeTunnelError::TokenIndexOccupied.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
             token_proposers.tokens[token_index as usize] = *token_pubkey;
-            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+            DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
 
@@ -218,7 +218,7 @@ impl Processor {
         program_id: &Pubkey,
         signer_account: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
-        data_account_token_proposers: &AccountInfo<'a>,
+        data_account_tokens_proposers: &AccountInfo<'a>,
         token_index: u8,
     ) -> ProgramResult {
         // Check data account conditions
@@ -230,7 +230,7 @@ impl Processor {
         )?;
         DataAccountUtils::check_account_match(
             program_id,
-            data_account_token_proposers,
+            data_account_tokens_proposers,
             Constants::TOKENS_PROPOSERS,
             b"",
         )?;
@@ -240,14 +240,14 @@ impl Processor {
 
         // Process
         let mut token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         if token_proposers.tokens[token_index as usize] == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
             token_proposers.tokens[token_index as usize] = Pubkey::default();
-            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+            DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
 
@@ -353,6 +353,7 @@ impl Processor {
 
         // Process
         AtomicLock::execute_lock_internal(
+            program_id,
             data_account_basic_storage,
             data_account_tokens_proposers,
             data_account_proposed_lock,
@@ -456,8 +457,8 @@ impl Processor {
         data_account_proposed_unlock: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        token_account_contract: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
@@ -511,8 +512,8 @@ impl Processor {
             data_account_proposed_unlock,
             data_account_current_executors,
             data_account_next_executors,
-            token_account_contract,
             token_account_recipient,
+            token_account_contract,
             account_contract_signer,
             req_id,
             signatures,

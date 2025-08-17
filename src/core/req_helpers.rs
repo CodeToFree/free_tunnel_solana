@@ -62,18 +62,19 @@ impl ReqId {
         }
     }
 
-    pub fn checked_token_pubkey_and_decimal(
+    pub fn checked_token_index_pubkey_decimal(
         &self,
         data_account_tokens_proposers: &AccountInfo,
-    ) -> Result<(Pubkey, u8), ProgramError> {
+    ) -> Result<(u8, Pubkey, u8), ProgramError> {
         let TokensAndProposers {
             tokens, decimals, ..
         } = DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        let token_pubkey = tokens[self.token_index() as usize];
+        let token_index = self.token_index();
+        let token_pubkey = tokens[token_index as usize];
         if token_pubkey == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
-            Ok((token_pubkey, decimals[self.token_index() as usize]))
+            Ok((token_index, token_pubkey, decimals[token_index as usize]))
         }
     }
 
@@ -89,8 +90,8 @@ impl ReqId {
         if amount == 0 {
             Err(FreeTunnelError::AmountCannotBeZero.into())
         } else {
-            let (_, decimal) =
-                self.checked_token_pubkey_and_decimal(data_account_tokens_proposers)?;
+            let (_, _, decimal) =
+                self.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
             if decimal > 6 {
                 Ok(amount * 10u64.pow(decimal as u32 - 6))
             } else if decimal < 6 {

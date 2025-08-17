@@ -35,3 +35,8 @@ pub struct ProposedLock {
 pub struct ProposedMint {
     pub inner: Pubkey,
 }
+
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
+pub struct ProposedBurn {
+    pub inner: Pubkey,
+}

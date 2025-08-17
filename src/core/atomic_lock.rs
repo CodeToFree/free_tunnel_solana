@@ -2,7 +2,10 @@ use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, program::invoke_signed,
     pubkey::Pubkey, sysvar::Sysvar,
 };
-use spl_token::instruction::transfer;
+use spl_token::{
+    instruction::transfer,
+    state::{Account as TokenAccount, GenericTokenAccount},
+};
 use std::mem::size_of;
 
 use crate::{
@@ -16,6 +19,24 @@ use crate::{
 pub struct AtomicLock;
 
 impl AtomicLock {
+    fn check_token_account_match_index<'a>(
+        token_account: &AccountInfo<'a>,
+        expected_token_pubkey: &Pubkey,
+    ) -> ProgramResult {
+        let token_account_data = token_account.data.borrow();
+        match TokenAccount::valid_account_data(&token_account_data) {
+            true => {
+                let token_pubkey = TokenAccount::unpack_account_mint_unchecked(&token_account_data);
+                if expected_token_pubkey != token_pubkey {
+                    Err(FreeTunnelError::TokenMismatch.into())
+                } else {
+                    Ok(())
+                }
+            }
+            false => Err(FreeTunnelError::InvalidTokenAccount.into()),
+        }
+    }
+
     pub(crate) fn propose_lock_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
@@ -55,6 +76,9 @@ impl AtomicLock {
 
         // Deposit token
         let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let (_, expected_token_pubkey, _) =
+            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+        Self::check_token_account_match_index(token_account_proposer, &expected_token_pubkey)?;
         invoke_signed(
             &transfer(
                 system_account_token_program.key,
@@ -74,6 +98,7 @@ impl AtomicLock {
     }
 
     pub(crate) fn execute_lock_internal<'a>(
+        _program_id: &Pubkey,
         data_account_basic_storage: &AccountInfo,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
@@ -151,6 +176,9 @@ impl AtomicLock {
 
         // Refund token
         let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let (_, expected_token_pubkey, _) =
+            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+        Self::check_token_account_match_index(token_account_contract, &expected_token_pubkey)?;
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
         if expected_contract_pubkey != *account_contract_signer.key {
@@ -228,8 +256,8 @@ impl AtomicLock {
         data_account_proposed_unlock: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        token_account_contract: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
@@ -266,6 +294,9 @@ impl AtomicLock {
 
         // Unlock token to recipient
         let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let (_, expected_token_pubkey, _) =
+            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+        Self::check_token_account_match_index(token_account_contract, &expected_token_pubkey)?;
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
         if expected_contract_pubkey != *account_contract_signer.key {

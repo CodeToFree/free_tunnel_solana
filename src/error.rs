@@ -49,9 +49,13 @@ pub enum FreeTunnelError {
 
     // Atomic Lock & Mint
     NotLockMint = 601,
+    NotBurnMint,
     NotBurnUnlock,
     InvalidReqId,
     InvalidRecipient,
+    InvalidProposer,
+    InvalidTokenAccount,
+    TokenMismatch,
     WaitUntilExpired,
     ContractSignerMismatch,
 

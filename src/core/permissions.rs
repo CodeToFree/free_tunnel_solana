@@ -27,11 +27,11 @@ impl Permissions {
     }
 
     pub(crate) fn assert_only_proposer(
-        data_account_token_proposers: &AccountInfo,
+        data_account_tokens_proposers: &AccountInfo,
         signer: &Pubkey,
     ) -> ProgramResult {
         let token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         if !token_proposers.proposers.contains(&signer) {
             Err(FreeTunnelError::NotProposer.into())
         } else {
@@ -40,30 +40,30 @@ impl Permissions {
     }
 
     pub(crate) fn add_proposer_internal(
-        data_account_token_proposers: &AccountInfo,
+        data_account_tokens_proposers: &AccountInfo,
         proposer: &Pubkey,
     ) -> ProgramResult {
         let mut token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         if token_proposers.proposers.contains(&proposer) {
             Err(FreeTunnelError::AlreadyProposer.into())
         } else {
             token_proposers.proposers.push(proposer.clone());
-            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+            DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
 
     pub(crate) fn remove_proposer_internal(
-        data_account_token_proposers: &AccountInfo,
+        data_account_tokens_proposers: &AccountInfo,
         proposer: &Pubkey,
     ) -> ProgramResult {
         let mut token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_token_proposers)?;
+            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         if !token_proposers.proposers.contains(proposer) {
             Err(FreeTunnelError::NotExistingProposer.into())
         } else {
             token_proposers.proposers.retain(|p| p != proposer);
-            DataAccountUtils::write_account_data(data_account_token_proposers, token_proposers)
+            DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
 
