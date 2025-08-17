@@ -40,7 +40,7 @@ impl AtomicLock {
     pub(crate) fn propose_lock_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
-        payer_account: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
@@ -61,7 +61,7 @@ impl AtomicLock {
         // Write proposed-lock data
         DataAccountUtils::create_related_account(
             program_id,
-            payer_account,
+            account_payer,
             data_account_proposed_lock,
             Constants::PREFIX_LOCK,
             &req_id.data,
@@ -204,7 +204,7 @@ impl AtomicLock {
 
     pub(crate) fn propose_unlock_internal<'a>(
         program_id: &Pubkey,
-        payer_account: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>, // signer
@@ -228,7 +228,7 @@ impl AtomicLock {
         // Write proposed-unlock data
         DataAccountUtils::create_related_account(
             program_id,
-            payer_account,
+            account_payer,
             data_account_proposed_unlock,
             Constants::PREFIX_UNLOCK,
             &req_id.data,

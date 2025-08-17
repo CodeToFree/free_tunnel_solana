@@ -188,14 +188,14 @@ impl DataAccountUtils {
     ///
     /// # Arguments
     /// * `program_id` - The program that will own the account
-    /// * `payer_account` - Account that will pay for the new account creation
+    /// * `account_payer` - Account that will pay for the new account creation
     /// * `target_account` - Account to be created as a PDA
     /// * `prefix` - Seed prefix for PDA derivation
     /// * `phrase` - Additional seed for PDA derivation
     /// * `data_length` - Size of the account data in bytes
     pub fn create_related_account<'a>(
         program_id: &Pubkey,
-        payer_account: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
         target_account: &AccountInfo<'a>,
         prefix: &[u8],
         phrase: &[u8],
@@ -213,13 +213,13 @@ impl DataAccountUtils {
             let required_lamports = rent.minimum_balance(data_length);
             invoke_signed(
                 &create_account(
-                    payer_account.key,
+                    account_payer.key,
                     target_account.key,
                     required_lamports,
                     data_length as u64,
                     program_id,
                 ),
-                &[payer_account.clone(), target_account.clone()],
+                &[account_payer.clone(), target_account.clone()],
                 &[&[prefix.as_ref(), phrase.as_ref(), &[bump_seed]]],
             )
         }

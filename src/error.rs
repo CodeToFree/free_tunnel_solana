@@ -58,6 +58,8 @@ pub enum FreeTunnelError {
     TokenMismatch,
     WaitUntilExpired,
     ContractSignerMismatch,
+    NotMintContract,
+    NotLockContract,
 
     // Signers
     ProposerNotSigner = 701,

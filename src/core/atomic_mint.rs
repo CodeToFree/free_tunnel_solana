@@ -81,7 +81,7 @@ impl AtomicMint {
 
     pub(crate) fn propose_mint_internal<'a>(
         program_id: &Pubkey,
-        payer_account: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         req_id: &ReqId,
@@ -96,7 +96,7 @@ impl AtomicMint {
         // Write proposed-lock data
         DataAccountUtils::create_related_account(
             program_id,
-            payer_account,
+            account_payer,
             data_account_proposed_mint,
             Constants::PREFIX_MINT,
             &req_id.data,
@@ -220,7 +220,7 @@ impl AtomicMint {
     pub(crate) fn propose_burn_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
-        payer_account: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
@@ -240,7 +240,7 @@ impl AtomicMint {
         // Write proposed-burn data
         DataAccountUtils::create_related_account(
             program_id,
-            payer_account,
+            account_payer,
             data_account_proposed_burn,
             Constants::PREFIX_BURN,
             &req_id.data,

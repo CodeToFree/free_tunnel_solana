@@ -106,7 +106,7 @@ fn process_initialize_counter(
     let accounts_iter = &mut accounts.iter();
 
     let counter_account = next_account_info(accounts_iter)?;
-    let payer_account = next_account_info(accounts_iter)?;
+    let account_payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
     // Size of our counter account
@@ -119,14 +119,14 @@ fn process_initialize_counter(
     // Create the counter account
     invoke(
         &create_account(
-            payer_account.key,    // Account paying for the new account
+            account_payer.key,    // Account paying for the new account
             counter_account.key,  // Account to be created
             required_lamports,    // Amount of lamports to transfer to the new account
             account_space as u64, // Size in bytes to allocate for the data field
             program_id,           // Set program owner to our program
         ),
         &[
-            payer_account.clone(),
+            account_payer.clone(),
             counter_account.clone(),
             system_program.clone(),
         ],
