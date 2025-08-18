@@ -1,3 +1,4 @@
+use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult,
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
@@ -6,6 +7,8 @@ use solana_program::{
 use crate::error::FreeTunnelError;
 use crate::utils::DataAccountUtils;
 use crate::{constants::Constants, state::TokensAndProposers};
+
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct ReqId {
     /// In format of: `version:uint8|createdTime:uint40|action:uint8`
     ///     + `tokenIndex:uint8|amount:uint64|from:uint8|to:uint8|(TBD):uint112`

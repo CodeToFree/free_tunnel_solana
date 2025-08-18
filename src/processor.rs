@@ -1,4 +1,8 @@
-use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, pubkey::Pubkey};
+use solana_program::{
+    account_info::{next_account_info, AccountInfo},
+    entrypoint::ProgramResult,
+    pubkey::Pubkey,
+};
 
 use crate::{
     constants::{Constants, EthAddress},
@@ -7,6 +11,7 @@ use crate::{
         req_helpers::ReqId,
     },
     error::FreeTunnelError,
+    instruction::FreeTunnelInstruction,
     state::{BasicStorage, TokensAndProposers},
     utils::DataAccountUtils,
 };
@@ -14,20 +19,441 @@ use crate::{
 pub struct Processor;
 
 impl Processor {
-    fn check_is_mint_contract<'a>(
-        data_account_basic_storage: &AccountInfo<'a>,
+    pub fn process_instruction(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        instruction_data: &[u8],
     ) -> ProgramResult {
-        let basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let instruction = FreeTunnelInstruction::unpack(instruction_data)?;
+        let accounts_iter = &mut accounts.iter();
+
+        match instruction {
+            FreeTunnelInstruction::Initialize {
+                is_mint_contract,
+                executors,
+                threshold,
+                exe_index,
+            } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_admin = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_executors_at_index = next_account_info(accounts_iter)?;
+                Self::process_initialize(
+                    program_id,
+                    account_payer,
+                    account_admin,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_executors_at_index,
+                    is_mint_contract,
+                    &executors,
+                    threshold,
+                    exe_index,
+                )
+            }
+            FreeTunnelInstruction::TransferAdmin { new_admin } => {
+                let account_admin = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                Self::process_transfer_admin(
+                    program_id,
+                    account_admin,
+                    data_account_basic_storage,
+                    &new_admin,
+                )
+            }
+            FreeTunnelInstruction::AddProposer { new_proposer } => {
+                let account_admin = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                Self::process_add_proposer(
+                    program_id,
+                    account_admin,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    &new_proposer,
+                )
+            }
+            FreeTunnelInstruction::RemoveProposer { proposer } => {
+                let account_admin = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                Self::process_remove_proposer(
+                    program_id,
+                    account_admin,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    &proposer,
+                )
+            }
+            FreeTunnelInstruction::UpdateExecutors {
+                new_executors,
+                threshold,
+                active_since,
+                signatures,
+                executors,
+                exe_index,
+            } => {
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_current_executors = next_account_info(accounts_iter)?;
+                let data_account_next_executors = next_account_info(accounts_iter)?;
+                Self::process_update_executors(
+                    program_id,
+                    data_account_basic_storage,
+                    data_account_current_executors,
+                    data_account_next_executors,
+                    &new_executors,
+                    threshold,
+                    active_since,
+                    &signatures,
+                    &executors,
+                    exe_index,
+                )
+            }
+            FreeTunnelInstruction::AddToken {
+                token_index,
+                token_pubkey,
+            } => {
+                let account_admin = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                Self::process_add_token(
+                    program_id,
+                    account_admin,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    token_index,
+                    &token_pubkey,
+                )
+            }
+            FreeTunnelInstruction::RemoveToken { token_index } => {
+                let account_admin = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                Self::process_remove_token(
+                    program_id,
+                    account_admin,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    token_index,
+                )
+            }
+            FreeTunnelInstruction::ProposeMint { req_id, recipient } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                Self::process_propose_mint(
+                    program_id,
+                    account_payer,
+                    account_proposer,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_mint,
+                    &req_id,
+                    &recipient,
+                )
+            }
+            FreeTunnelInstruction::ProposeMintForBurn { req_id, recipient } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                Self::process_propose_mint_for_burn(
+                    program_id,
+                    account_payer,
+                    account_proposer,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_mint,
+                    &req_id,
+                    &recipient,
+                )
+            }
+            FreeTunnelInstruction::ExecuteMint {
+                req_id,
+                signatures,
+                executors,
+                exe_index,
+            } => {
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                let data_account_current_executors = next_account_info(accounts_iter)?;
+                let data_account_next_executors = next_account_info(accounts_iter)?;
+                let token_account_recipient = next_account_info(accounts_iter)?;
+                let account_token_mint = next_account_info(accounts_iter)?;
+                let account_multisig_owner = next_account_info(accounts_iter)?;
+                let account_multisig_wallets = accounts_iter.as_slice();
+                Self::process_execute_mint(
+                    program_id,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_mint,
+                    data_account_current_executors,
+                    data_account_next_executors,
+                    token_account_recipient,
+                    account_token_mint,
+                    account_multisig_owner,
+                    account_multisig_wallets,
+                    &req_id,
+                    &signatures,
+                    &executors,
+                    exe_index,
+                )
+            }
+            FreeTunnelInstruction::CancelMint { req_id } => {
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                Self::process_cancel_mint(
+                    program_id,
+                    data_account_basic_storage,
+                    data_account_proposed_mint,
+                    &req_id,
+                )
+            }
+            FreeTunnelInstruction::ProposeBurn { req_id } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_burn = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                Self::process_propose_burn(
+                    program_id,
+                    account_payer,
+                    account_proposer,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_burn,
+                    token_account_proposer,
+                    token_account_contract,
+                    &req_id,
+                )
+            }
+            FreeTunnelInstruction::ProposeBurnForMint { req_id } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_burn = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                Self::process_propose_burn_for_mint(
+                    program_id,
+                    account_payer,
+                    account_proposer,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_burn,
+                    token_account_proposer,
+                    token_account_contract,
+                    &req_id,
+                )
+            }
+            FreeTunnelInstruction::ExecuteBurn {
+                req_id,
+                signatures,
+                executors,
+                exe_index,
+            } => {
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_burn = next_account_info(accounts_iter)?;
+                let data_account_current_executors = next_account_info(accounts_iter)?;
+                let data_account_next_executors = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                let account_token_mint = next_account_info(accounts_iter)?;
+                Self::process_execute_burn(
+                    program_id,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_burn,
+                    data_account_current_executors,
+                    data_account_next_executors,
+                    token_account_contract,
+                    account_contract_signer,
+                    account_token_mint,
+                    &req_id,
+                    &signatures,
+                    &executors,
+                    exe_index,
+                )
+            }
+            FreeTunnelInstruction::CancelBurn { req_id } => {
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_burn = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                Self::process_cancel_burn(
+                    program_id,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_burn,
+                    token_account_proposer,
+                    token_account_contract,
+                    account_contract_signer,
+                    &req_id,
+                )
+            }
+            FreeTunnelInstruction::ProposeLock { req_id } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_lock = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                Self::process_propose_lock(
+                    program_id,
+                    account_payer,
+                    account_proposer,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_lock,
+                    token_account_proposer,
+                    token_account_contract,
+                    &req_id,
+                )
+            }
+            FreeTunnelInstruction::ExecuteLock {
+                req_id,
+                signatures,
+                executors,
+                exe_index,
+            } => {
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_lock = next_account_info(accounts_iter)?;
+                let data_account_current_executors = next_account_info(accounts_iter)?;
+                let data_account_next_executors = next_account_info(accounts_iter)?;
+                Self::process_execute_lock(
+                    program_id,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_lock,
+                    data_account_current_executors,
+                    data_account_next_executors,
+                    &req_id,
+                    &signatures,
+                    &executors,
+                    exe_index,
+                )
+            }
+            FreeTunnelInstruction::CancelLock { req_id } => {
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_lock = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                Self::process_cancel_lock(
+                    program_id,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_lock,
+                    token_account_proposer,
+                    token_account_contract,
+                    account_contract_signer,
+                    &req_id,
+                )
+            }
+            FreeTunnelInstruction::ProposeUnlock { req_id, recipient } => {
+                let account_payer = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_unlock = next_account_info(accounts_iter)?;
+                Self::process_propose_unlock(
+                    program_id,
+                    account_payer,
+                    account_proposer,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_unlock,
+                    &req_id,
+                    &recipient,
+                )
+            }
+            FreeTunnelInstruction::ExecuteUnlock {
+                req_id,
+                signatures,
+                executors,
+                exe_index,
+            } => {
+                let system_account_token_program = next_account_info(accounts_iter)?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_unlock = next_account_info(accounts_iter)?;
+                let data_account_current_executors = next_account_info(accounts_iter)?;
+                let data_account_next_executors = next_account_info(accounts_iter)?;
+                let token_account_recipient = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                Self::process_execute_unlock(
+                    program_id,
+                    system_account_token_program,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_unlock,
+                    data_account_current_executors,
+                    data_account_next_executors,
+                    token_account_recipient,
+                    token_account_contract,
+                    account_contract_signer,
+                    &req_id,
+                    &signatures,
+                    &executors,
+                    exe_index,
+                )
+            }
+            FreeTunnelInstruction::CancelUnlock { req_id } => {
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let data_account_tokens_proposers = next_account_info(accounts_iter)?;
+                let data_account_proposed_unlock = next_account_info(accounts_iter)?;
+                Self::process_cancel_unlock(
+                    program_id,
+                    data_account_basic_storage,
+                    data_account_tokens_proposers,
+                    data_account_proposed_unlock,
+                    &req_id,
+                )
+            }
+        }
+    }
+    
+    fn check_is_mint_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
+        let basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
         match basic_storage.mint_or_lock {
             true => Ok(()),
             false => Err(FreeTunnelError::NotMintContract.into()),
         }
     }
 
-    fn check_is_lock_contract<'a>(
-        data_account_basic_storage: &AccountInfo<'a>,
-    ) -> ProgramResult {
-        let basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
+    fn check_is_lock_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
+        let basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
         match basic_storage.mint_or_lock {
             true => Err(FreeTunnelError::NotLockContract.into()),
             false => Ok(()),
@@ -66,7 +492,6 @@ impl Processor {
             &exe_index.to_le_bytes(),
         )?;
 
-
         // Check signer
         if !account_admin.is_signer {
             return Err(FreeTunnelError::AdminNotSigner.into());
@@ -81,11 +506,14 @@ impl Processor {
             b"",
             Constants::SIZE_BASIC_STORAGE,
         )?;
-        DataAccountUtils::write_account_data(data_account_basic_storage, BasicStorage {
-            mint_or_lock: is_mint_contract,
-            admin: *account_admin.key,
-            executors_group_length: 0,
-        })?;
+        DataAccountUtils::write_account_data(
+            data_account_basic_storage,
+            BasicStorage {
+                mint_or_lock: is_mint_contract,
+                admin: *account_admin.key,
+                executors_group_length: 0,
+            },
+        )?;
         DataAccountUtils::create_related_account(
             program_id,
             account_payer,
@@ -94,12 +522,15 @@ impl Processor {
             b"",
             Constants::SIZE_TOKENS_PROPOSERS,
         )?;
-        DataAccountUtils::write_account_data(data_account_tokens_proposers, TokensAndProposers {
-            tokens: [Pubkey::default(); 256],
-            decimals: [0; 256],
-            locked_balance: [0; 256],
-            proposers: Vec::new(),
-        })?;
+        DataAccountUtils::write_account_data(
+            data_account_tokens_proposers,
+            TokensAndProposers {
+                tokens: [Pubkey::default(); 256],
+                decimals: [0; 256],
+                locked_balance: [0; 256],
+                proposers: Vec::new(),
+            },
+        )?;
 
         // Process
         Permissions::init_executors_internal(
@@ -374,7 +805,6 @@ impl Processor {
         )
     }
 
-
     fn process_propose_mint_for_burn<'a>(
         program_id: &Pubkey,
         account_payer: &AccountInfo<'a>,
@@ -507,11 +937,7 @@ impl Processor {
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
         // Process
-        AtomicMint::cancel_mint_internal(
-            program_id,
-            data_account_proposed_mint,
-            req_id,
-        )
+        AtomicMint::cancel_mint_internal(program_id, data_account_proposed_mint, req_id)
     }
 
     fn process_propose_burn<'a>(
@@ -593,7 +1019,7 @@ impl Processor {
             return Err(FreeTunnelError::ProposerNotSigner.into());
         }
         AtomicMint::check_propose_burn_from_mint(req_id)?;
-        
+
         // Process
         AtomicMint::propose_burn_internal(
             program_id,
