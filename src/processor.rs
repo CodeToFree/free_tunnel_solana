@@ -441,7 +441,7 @@ impl Processor {
             }
         }
     }
-    
+
     fn check_is_mint_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
         let basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
@@ -687,17 +687,11 @@ impl Processor {
         token_pubkey: &Pubkey,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_basic_storage,
-            Constants::BASIC_STORAGE,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
+            &[data_account_basic_storage, data_account_tokens_proposers],
+            &[Constants::BASIC_STORAGE, Constants::TOKENS_PROPOSERS],
+            &[b"", b""],
         )?;
 
         // Check permissions
@@ -727,17 +721,11 @@ impl Processor {
         token_index: u8,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_basic_storage,
-            Constants::BASIC_STORAGE,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
+            &[data_account_basic_storage, data_account_tokens_proposers],
+            &[Constants::BASIC_STORAGE, Constants::TOKENS_PROPOSERS],
+            &[b"", b""],
         )?;
 
         // Check permissions
@@ -770,17 +758,11 @@ impl Processor {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_mint,
-            Constants::PREFIX_MINT,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_mint],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_MINT],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -816,17 +798,11 @@ impl Processor {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_mint,
-            Constants::PREFIX_MINT,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_mint],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_MINT],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -854,11 +830,11 @@ impl Processor {
     fn process_execute_mint<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
-        data_account_basic_storage: &AccountInfo,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_current_executors: &AccountInfo<'a>,
+        data_account_next_executors: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
@@ -869,35 +845,29 @@ impl Processor {
         exe_index: u64,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_basic_storage,
-            Constants::BASIC_STORAGE,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_mint,
-            Constants::PREFIX_MINT,
-            &req_id.data,
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_current_executors,
-            Constants::PREFIX_EXECUTORS,
-            &exe_index.to_le_bytes(),
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_next_executors,
-            Constants::PREFIX_EXECUTORS,
-            &(exe_index + 1).to_le_bytes(),
+            &[
+                data_account_basic_storage,
+                data_account_tokens_proposers,
+                data_account_proposed_mint,
+                data_account_current_executors,
+                data_account_next_executors,
+            ],
+            &[
+                Constants::BASIC_STORAGE,
+                Constants::TOKENS_PROPOSERS,
+                Constants::PREFIX_MINT,
+                Constants::PREFIX_EXECUTORS,
+                Constants::PREFIX_EXECUTORS,
+            ],
+            &[
+                b"",
+                b"",
+                &req_id.data,
+                &exe_index.to_le_bytes(),
+                &(exe_index + 1).to_le_bytes(),
+            ],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -953,17 +923,11 @@ impl Processor {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_burn,
-            Constants::PREFIX_BURN,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_burn],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_BURN],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -1000,17 +964,11 @@ impl Processor {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_burn,
-            Constants::PREFIX_BURN,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_burn],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_BURN],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -1037,11 +995,11 @@ impl Processor {
     fn process_execute_burn<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
-        data_account_basic_storage: &AccountInfo,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_current_executors: &AccountInfo<'a>,
+        data_account_next_executors: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
@@ -1051,35 +1009,29 @@ impl Processor {
         exe_index: u64,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_basic_storage,
-            Constants::BASIC_STORAGE,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_burn,
-            Constants::PREFIX_BURN,
-            &req_id.data,
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_current_executors,
-            Constants::PREFIX_EXECUTORS,
-            &exe_index.to_le_bytes(),
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_next_executors,
-            Constants::PREFIX_EXECUTORS,
-            &(exe_index + 1).to_le_bytes(),
+            &[
+                data_account_basic_storage,
+                data_account_tokens_proposers,
+                data_account_proposed_burn,
+                data_account_current_executors,
+                data_account_next_executors,
+            ],
+            &[
+                Constants::BASIC_STORAGE,
+                Constants::TOKENS_PROPOSERS,
+                Constants::PREFIX_BURN,
+                Constants::PREFIX_EXECUTORS,
+                Constants::PREFIX_EXECUTORS,
+            ],
+            &[
+                b"",
+                b"",
+                &req_id.data,
+                &exe_index.to_le_bytes(),
+                &(exe_index + 1).to_le_bytes(),
+            ],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -1114,17 +1066,11 @@ impl Processor {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_burn,
-            Constants::PREFIX_BURN,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_burn],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_BURN],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
 
@@ -1154,17 +1100,11 @@ impl Processor {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_lock,
-            Constants::PREFIX_LOCK,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_lock],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_LOCK],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
@@ -1200,35 +1140,29 @@ impl Processor {
         exe_index: u64,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_basic_storage,
-            Constants::BASIC_STORAGE,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_lock,
-            Constants::PREFIX_LOCK,
-            &req_id.data,
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_current_executors,
-            Constants::PREFIX_EXECUTORS,
-            &exe_index.to_le_bytes(),
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_next_executors,
-            Constants::PREFIX_EXECUTORS,
-            &(exe_index + 1).to_le_bytes(),
+            &[
+                data_account_basic_storage,
+                data_account_tokens_proposers,
+                data_account_proposed_lock,
+                data_account_current_executors,
+                data_account_next_executors,
+            ],
+            &[
+                Constants::BASIC_STORAGE,
+                Constants::TOKENS_PROPOSERS,
+                Constants::PREFIX_LOCK,
+                Constants::PREFIX_EXECUTORS,
+                Constants::PREFIX_EXECUTORS,
+            ],
+            &[
+                b"",
+                b"",
+                &req_id.data,
+                &exe_index.to_le_bytes(),
+                &(exe_index + 1).to_le_bytes(),
+            ],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
@@ -1259,23 +1193,19 @@ impl Processor {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_lock,
-            Constants::PREFIX_LOCK,
-            &req_id.data,
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            account_contract_signer,
-            Constants::CONTRACT_SIGNER,
-            b"",
+            &[
+                data_account_tokens_proposers,
+                data_account_proposed_lock,
+                account_contract_signer,
+            ],
+            &[
+                Constants::TOKENS_PROPOSERS,
+                Constants::PREFIX_LOCK,
+                Constants::CONTRACT_SIGNER,
+            ],
+            &[b"", &req_id.data, b""],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
@@ -1303,17 +1233,11 @@ impl Processor {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_unlock,
-            Constants::PREFIX_UNLOCK,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_unlock],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_UNLOCK],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
@@ -1337,11 +1261,11 @@ impl Processor {
     fn process_execute_unlock<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
-        data_account_basic_storage: &AccountInfo,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_current_executors: &AccountInfo<'a>,
+        data_account_next_executors: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
@@ -1351,41 +1275,32 @@ impl Processor {
         exe_index: u64,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_basic_storage,
-            Constants::BASIC_STORAGE,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_unlock,
-            Constants::PREFIX_UNLOCK,
-            &req_id.data,
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_current_executors,
-            Constants::PREFIX_EXECUTORS,
-            &exe_index.to_le_bytes(),
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_next_executors,
-            Constants::PREFIX_EXECUTORS,
-            &(exe_index + 1).to_le_bytes(),
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            account_contract_signer,
-            Constants::CONTRACT_SIGNER,
-            b"",
+            &[
+                data_account_basic_storage,
+                data_account_tokens_proposers,
+                data_account_proposed_unlock,
+                data_account_current_executors,
+                data_account_next_executors,
+                account_contract_signer,
+            ],
+            &[
+                Constants::BASIC_STORAGE,
+                Constants::TOKENS_PROPOSERS,
+                Constants::PREFIX_UNLOCK,
+                Constants::PREFIX_EXECUTORS,
+                Constants::PREFIX_EXECUTORS,
+                Constants::CONTRACT_SIGNER,
+            ],
+            &[
+                b"",
+                b"",
+                &req_id.data,
+                &exe_index.to_le_bytes(),
+                &(exe_index + 1).to_le_bytes(),
+                b"",
+            ],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
@@ -1416,17 +1331,11 @@ impl Processor {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
-        DataAccountUtils::check_account_match(
+        DataAccountUtils::check_account_match_batch(
             program_id,
-            data_account_tokens_proposers,
-            Constants::TOKENS_PROPOSERS,
-            b"",
-        )?;
-        DataAccountUtils::check_account_match(
-            program_id,
-            data_account_proposed_unlock,
-            Constants::PREFIX_UNLOCK,
-            &req_id.data,
+            &[data_account_tokens_proposers, data_account_proposed_unlock],
+            &[Constants::TOKENS_PROPOSERS, Constants::PREFIX_UNLOCK],
+            &[b"", &req_id.data],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 

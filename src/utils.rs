@@ -245,6 +245,18 @@ impl DataAccountUtils {
         }
     }
 
+    pub fn check_account_match_batch(
+        program_id: &Pubkey,
+        accounts: &[&AccountInfo],
+        prefix: &[&[u8]],
+        phrase: &[&[u8]],
+    ) -> ProgramResult {
+        for i in 0..accounts.len() {
+            Self::check_account_match(program_id, &accounts[i], prefix[i], phrase[i])?;
+        }
+        Ok(())
+    }
+
     pub fn write_account_data<Data: BorshSerialize>(
         data_account: &AccountInfo,
         content: Data,
