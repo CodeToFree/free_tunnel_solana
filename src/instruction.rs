@@ -1,7 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
-use crate::{constants::EthAddress, core::req_helpers::ReqId};
+use crate::{constants::EthAddress, logic::req_helpers::ReqId};
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum FreeTunnelInstruction {

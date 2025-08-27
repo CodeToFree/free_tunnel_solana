@@ -10,7 +10,7 @@ use std::mem::size_of;
 
 use crate::{
     constants::{Constants, EthAddress},
-    core::{permissions::Permissions, req_helpers::ReqId},
+    logic::{permissions::Permissions, req_helpers::ReqId},
     error::FreeTunnelError,
     state::{ProposedBurn, ProposedMint},
     utils::{DataAccountUtils, SignatureUtils},

@@ -58,7 +58,7 @@ impl ReqId {
     ) -> Result<u8, ProgramError> {
         let TokensAndProposers { tokens, .. } =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if tokens[self.token_index() as usize] == Pubkey::default() {
+        if tokens[self.token_index()] == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
             Ok(self.token_index())
@@ -73,11 +73,11 @@ impl ReqId {
             tokens, decimals, ..
         } = DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
         let token_index = self.token_index();
-        let token_pubkey = tokens[token_index as usize];
+        let token_pubkey = tokens[token_index];
         if token_pubkey == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
-            Ok((token_index, token_pubkey, decimals[token_index as usize]))
+            Ok((token_index, token_pubkey, decimals[token_index]))
         }
     }
 

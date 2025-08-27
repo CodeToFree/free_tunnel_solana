@@ -5,15 +5,10 @@ use solana_program::{
 };
 
 use crate::{
-    constants::{Constants, EthAddress},
-    core::{
+    constants::{Constants, EthAddress}, error::FreeTunnelError, instruction::FreeTunnelInstruction, logic::{
         atomic_lock::AtomicLock, atomic_mint::AtomicMint, permissions::Permissions,
         req_helpers::ReqId,
-    },
-    error::FreeTunnelError,
-    instruction::FreeTunnelInstruction,
-    state::{BasicStorage, TokensAndProposers},
-    utils::DataAccountUtils,
+    }, state::{BasicStorage, SparseArray, TokensAndProposers}, utils::DataAccountUtils
 };
 
 pub struct Processor;
@@ -525,9 +520,9 @@ impl Processor {
         DataAccountUtils::write_account_data(
             data_account_tokens_proposers,
             TokensAndProposers {
-                tokens: [Pubkey::default(); 256],
-                decimals: [0; 256],
-                locked_balance: [0; 256],
+                tokens: SparseArray::default(),
+                decimals: SparseArray::default(),
+                locked_balance: SparseArray::default(),
                 proposers: Vec::new(),
             },
         )?;
@@ -703,12 +698,12 @@ impl Processor {
         // Process
         let mut token_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if token_proposers.tokens[token_index as usize] != Pubkey::default() {
+        if token_proposers.tokens[token_index] != Pubkey::default() {
             Err(FreeTunnelError::TokenIndexOccupied.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
-            token_proposers.tokens[token_index as usize] = *token_pubkey;
+            token_proposers.tokens[token_index] = *token_pubkey;
             DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
@@ -737,12 +732,12 @@ impl Processor {
         // Process
         let mut token_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if token_proposers.tokens[token_index as usize] == Pubkey::default() {
+        if token_proposers.tokens[token_index] == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
-            token_proposers.tokens[token_index as usize] = Pubkey::default();
+            token_proposers.tokens[token_index] = Pubkey::default();
             DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }

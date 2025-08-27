@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod req_helpers_test {
 
-    use crate::core::req_helpers::ReqId;
+    use crate::logic::req_helpers::ReqId;
     use hex;
 
     #[test]

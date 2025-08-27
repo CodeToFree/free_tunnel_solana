@@ -10,7 +10,7 @@ use std::mem::size_of;
 
 use crate::{
     constants::{Constants, EthAddress},
-    core::{permissions::Permissions, req_helpers::ReqId},
+    logic::{permissions::Permissions, req_helpers::ReqId},
     error::FreeTunnelError,
     state::{ProposedLock, TokensAndProposers},
     utils::{DataAccountUtils, SignatureUtils},
@@ -141,7 +141,7 @@ impl AtomicLock {
         let token_index = req_id.checked_token_index(data_account_tokens_proposers)?;
         let mut token_and_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        token_and_proposers.locked_balance[token_index as usize] += amount;
+        token_and_proposers.locked_balance[token_index] += amount;
         DataAccountUtils::write_account_data(data_account_tokens_proposers, token_and_proposers)
     }
 
@@ -244,7 +244,7 @@ impl AtomicLock {
         let token_index = req_id.checked_token_index(data_account_tokens_proposers)?;
         let mut token_and_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        token_and_proposers.locked_balance[token_index as usize] -= amount;
+        token_and_proposers.locked_balance[token_index] -= amount;
         DataAccountUtils::write_account_data(data_account_tokens_proposers, token_and_proposers)
     }
 
@@ -351,7 +351,7 @@ impl AtomicLock {
         let token_index = req_id.checked_token_index(data_account_tokens_proposers)?;
         let mut token_and_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        token_and_proposers.locked_balance[token_index as usize] += amount;
+        token_and_proposers.locked_balance[token_index] += amount;
         DataAccountUtils::write_account_data(data_account_tokens_proposers, token_and_proposers)
     }
 }
