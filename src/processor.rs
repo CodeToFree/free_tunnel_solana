@@ -34,6 +34,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_executors_at_index = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_initialize(
                     program_id,
                     account_payer,
@@ -41,6 +42,7 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_executors_at_index,
+                    system_program,
                     is_mint_contract,
                     &executors,
                     threshold,
@@ -139,6 +141,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_mint(
                     program_id,
                     account_payer,
@@ -146,6 +149,7 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_mint,
+                    system_program,
                     &req_id,
                     &recipient,
                 )
@@ -156,6 +160,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_mint_for_burn(
                     program_id,
                     account_payer,
@@ -163,6 +168,7 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_mint,
+                    system_program,
                     &req_id,
                     &recipient,
                 )
@@ -220,6 +226,7 @@ impl Processor {
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let token_account_contract = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_burn(
                     program_id,
                     account_payer,
@@ -230,6 +237,7 @@ impl Processor {
                     data_account_proposed_burn,
                     token_account_proposer,
                     token_account_contract,
+                    system_program,
                     &req_id,
                 )
             }
@@ -242,6 +250,7 @@ impl Processor {
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let token_account_contract = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_burn_for_mint(
                     program_id,
                     account_payer,
@@ -252,6 +261,7 @@ impl Processor {
                     data_account_proposed_burn,
                     token_account_proposer,
                     token_account_contract,
+                    system_program,
                     &req_id,
                 )
             }
@@ -316,6 +326,7 @@ impl Processor {
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let token_account_contract = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_lock(
                     program_id,
                     account_payer,
@@ -326,6 +337,7 @@ impl Processor {
                     data_account_proposed_lock,
                     token_account_proposer,
                     token_account_contract,
+                    system_program,
                     &req_id,
                 )
             }
@@ -379,6 +391,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_unlock(
                     program_id,
                     account_payer,
@@ -386,6 +399,7 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_unlock,
+                    system_program,
                     &req_id,
                     &recipient,
                 )
@@ -462,6 +476,7 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_executors_at_index: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         is_mint_contract: bool,
         executors: &Vec<EthAddress>,
         threshold: u64,
@@ -497,9 +512,10 @@ impl Processor {
             program_id,
             account_payer,
             data_account_basic_storage,
+            system_program,
             Constants::BASIC_STORAGE,
             b"",
-            Constants::SIZE_BASIC_STORAGE,
+            Constants::SIZE_BASIC_STORAGE + Constants::SIZE_LENGTH,
         )?;
         DataAccountUtils::write_account_data(
             data_account_basic_storage,
@@ -513,9 +529,10 @@ impl Processor {
             program_id,
             account_payer,
             data_account_tokens_proposers,
+            system_program,
             Constants::TOKENS_PROPOSERS,
             b"",
-            Constants::SIZE_TOKENS_PROPOSERS,
+            Constants::SIZE_TOKENS_PROPOSERS + Constants::SIZE_LENGTH,
         )?;
         DataAccountUtils::write_account_data(
             data_account_tokens_proposers,
@@ -527,7 +544,16 @@ impl Processor {
             },
         )?;
 
-        // Process
+        // Process init-executors
+        DataAccountUtils::create_related_account(
+            program_id,
+            account_payer,
+            data_account_executors_at_index,
+            system_program,
+            Constants::PREFIX_EXECUTORS,
+            &exe_index.to_le_bytes(),
+            Constants::SIZE_EXECUTORS_STORAGE + Constants::SIZE_LENGTH,
+        )?;
         Permissions::init_executors_internal(
             data_account_basic_storage,
             data_account_executors_at_index,
@@ -749,6 +775,7 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -777,6 +804,7 @@ impl Processor {
             account_payer,
             data_account_tokens_proposers,
             data_account_proposed_mint,
+            system_program,
             req_id,
             recipient,
         )
@@ -789,6 +817,7 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -817,6 +846,7 @@ impl Processor {
             account_payer,
             data_account_tokens_proposers,
             data_account_proposed_mint,
+            system_program,
             req_id,
             recipient,
         )
@@ -915,6 +945,7 @@ impl Processor {
         data_account_proposed_burn: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -942,6 +973,7 @@ impl Processor {
             token_account_proposer,
             token_account_contract,
             account_proposer,
+            system_program,
             req_id,
         )
     }
@@ -956,6 +988,7 @@ impl Processor {
         data_account_proposed_burn: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -983,6 +1016,7 @@ impl Processor {
             token_account_proposer,
             token_account_contract,
             account_proposer,
+            system_program,
             req_id,
         )
     }
@@ -1092,6 +1126,7 @@ impl Processor {
         data_account_proposed_lock: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -1118,6 +1153,7 @@ impl Processor {
             token_account_proposer,
             token_account_contract,
             account_proposer,
+            system_program,
             req_id,
         )
     }
@@ -1224,6 +1260,7 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -1248,6 +1285,7 @@ impl Processor {
             data_account_tokens_proposers,
             data_account_proposed_unlock,
             account_proposer,
+            system_program,
             req_id,
             recipient,
         )

@@ -46,6 +46,7 @@ impl AtomicLock {
         token_account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>, // signer
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
@@ -63,6 +64,7 @@ impl AtomicLock {
             program_id,
             account_payer,
             data_account_proposed_lock,
+            system_program,
             Constants::PREFIX_LOCK,
             &req_id.data,
             size_of::<ProposedLock>() + Constants::SIZE_LENGTH,
@@ -208,6 +210,7 @@ impl AtomicLock {
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>, // signer
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -230,6 +233,7 @@ impl AtomicLock {
             program_id,
             account_payer,
             data_account_proposed_unlock,
+            system_program,
             Constants::PREFIX_UNLOCK,
             &req_id.data,
             size_of::<ProposedLock>() + Constants::SIZE_LENGTH,

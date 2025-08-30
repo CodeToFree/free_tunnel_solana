@@ -84,6 +84,7 @@ impl AtomicMint {
         account_payer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -98,6 +99,7 @@ impl AtomicMint {
             program_id,
             account_payer,
             data_account_proposed_mint,
+            system_program,
             Constants::PREFIX_MINT,
             &req_id.data,
             size_of::<ProposedMint>() + Constants::SIZE_LENGTH,
@@ -226,6 +228,7 @@ impl AtomicMint {
         token_account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
@@ -242,6 +245,7 @@ impl AtomicMint {
             program_id,
             account_payer,
             data_account_proposed_burn,
+            system_program,
             Constants::PREFIX_BURN,
             &req_id.data,
             size_of::<ProposedBurn>() + Constants::SIZE_LENGTH,

@@ -12,6 +12,7 @@ pub enum FreeTunnelInstruction {
     /// 2. data_account_basic_storage: data account for storing basic storage
     /// 3. data_account_tokens_proposers: data account for storing tokens and proposers
     /// 4. data_account_executors_at_index: data account for storing executors at index
+    /// 5. system_program: system program account, `11111111111111111111111111111111`
     Initialize {
         is_mint_contract: bool,
         executors: Vec<EthAddress>,
@@ -70,6 +71,7 @@ pub enum FreeTunnelInstruction {
     /// 2. data_account_basic_storage
     /// 3. data_account_tokens_proposers
     /// 4. data_account_proposed_mint: data account for storing `ProposedMint` (recipient)
+    /// 5. system_program
     ProposeMint { req_id: ReqId, recipient: Pubkey },
 
     /// [8]
@@ -78,6 +80,7 @@ pub enum FreeTunnelInstruction {
     /// 2. data_account_basic_storage
     /// 3. data_account_tokens_proposers
     /// 4. data_account_proposed_mint
+    /// 5. system_program
     ProposeMintForBurn { req_id: ReqId, recipient: Pubkey },
 
     /// [9]
@@ -112,6 +115,7 @@ pub enum FreeTunnelInstruction {
     /// 5. data_account_proposed_burn: data account for storing `ProposedBurn` (recipient)
     /// 6. token_account_proposer: token account for the proposer, should be different for each token
     /// 7. token_account_contract: token account for this contract, should be different for each token
+    /// 8. system_program
     ProposeBurn { req_id: ReqId },
 
     /// [12]
@@ -123,6 +127,7 @@ pub enum FreeTunnelInstruction {
     /// 5. data_account_proposed_burn
     /// 6. token_account_proposer
     /// 7. token_account_contract
+    /// 8. system_program
     ProposeBurnForMint { req_id: ReqId },
 
     /// [13]
@@ -161,6 +166,7 @@ pub enum FreeTunnelInstruction {
     /// 5. data_account_proposed_lock
     /// 6. token_account_proposer
     /// 7. token_account_contract
+    /// 8. system_program
     ProposeLock { req_id: ReqId },
 
     /// [16]
@@ -192,6 +198,7 @@ pub enum FreeTunnelInstruction {
     /// 2. data_account_basic_storage
     /// 3. data_account_tokens_proposers
     /// 4. data_account_proposed_unlock
+    /// 5. system_program
     ProposeUnlock { req_id: ReqId, recipient: Pubkey },
 
     /// [19]

@@ -197,6 +197,7 @@ impl DataAccountUtils {
         program_id: &Pubkey,
         account_payer: &AccountInfo<'a>,
         target_account: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         prefix: &[u8],
         phrase: &[u8],
         data_length: usize,
@@ -219,7 +220,11 @@ impl DataAccountUtils {
                     data_length as u64,
                     program_id,
                 ),
-                &[account_payer.clone(), target_account.clone()],
+                &[
+                    account_payer.clone(),
+                    target_account.clone(),
+                    system_program.clone(),
+                ],
                 &[&[prefix.as_ref(), phrase.as_ref(), &[bump_seed]]],
             )
         }
