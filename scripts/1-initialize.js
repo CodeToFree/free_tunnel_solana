@@ -7,14 +7,11 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import * as borsh from "borsh";
+import fs from "fs";
+import os from "os";
 import path from "path";
 
-const PROGRAM_KEYPAIR_PATH = path.join(
-  "target",
-  "deploy",
-  "free_tunnel_solana-keypair.json"
-);
-
+// --- Configuration ---
 const PROGRAM_ID = new PublicKey(
   "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
 );
@@ -34,22 +31,32 @@ const GREEN="\x1b[32m";
 const BLUE="\x1b[34m";
 const RESET="\x1b[0m";
 
+/**
+ * Loads the default Solana CLI keypair to act as the admin/payer.
+ * @returns {Keypair} The keypair loaded from the default path.
+ */
+function loadAdminKeypair() {
+    const keypairPath = path.join(os.homedir(), '.config', 'solana', 'id.json');
+    if (!fs.existsSync(keypairPath)) {
+        throw new Error("Could not find Solana CLI keypair at default path. Please ensure it exists.");
+    }
+    const secretKey = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
+    return Keypair.fromSecretKey(new Uint8Array(secretKey));
+}
 
 async function main() {
   // 1. Setup accounts
   console.log("\nConnecting to local validator...");
   const connection = new Connection(RPC_URL, "confirmed");
 
-  console.log("Setting up payer and program accounts...");
-  const payer = Keypair.generate();
-
-  console.log(`Airdropping 2 SOL to payer account: ${payer.publicKey.toBase58()}`);
-  const airdropSignature = await connection.requestAirdrop(
-    payer.publicKey,
-    2 * 1_000_000_000 // 2 SOL
-  );
-  await connection.confirmTransaction(airdropSignature);
-  console.log("Airdrop complete.");
+  console.log("Loading admin/payer account from default Solana CLI path...");
+  const payer = loadAdminKeypair(); // Use the persistent default wallet
+  console.log(`Using Admin account: ${BLUE}${payer.publicKey.toBase58()}${RESET}`);
+  
+  // Airdrop to the default wallet if needed for local testing
+  console.log(`Airdropping 2 SOL to admin account if needed...`);
+  await connection.requestAirdrop(payer.publicKey, 2 * 1_000_000_000);
+  console.log("Airdrop request sent.");
 
   const isMintContract = true;
   const executors = [
@@ -109,7 +116,7 @@ async function main() {
   const initializeInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
-      // 0. account_payer
+      // 0. account_payer - also the admin
       { pubkey: payer.publicKey, isSigner: true, isWritable: true },
       // 1. account_admin
       { pubkey: payer.publicKey, isSigner: true, isWritable: false },
@@ -134,7 +141,7 @@ async function main() {
 
   console.log("\n--- Success! ---");
   console.log(`Transaction Signature: ${signature}`);
-  console.log("Your program has been initialized.");
+  console.log("Your program has been initialized with the correct admin.");
 }
 
 main().then(

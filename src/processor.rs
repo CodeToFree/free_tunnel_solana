@@ -724,12 +724,12 @@ impl Processor {
         // Process
         let mut token_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if token_proposers.tokens[token_index] != Pubkey::default() {
+        if token_proposers.tokens.get(token_index) != Option::None {
             Err(FreeTunnelError::TokenIndexOccupied.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
-            token_proposers.tokens[token_index] = *token_pubkey;
+            token_proposers.tokens.insert(token_index, *token_pubkey);
             DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
@@ -758,12 +758,12 @@ impl Processor {
         // Process
         let mut token_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if token_proposers.tokens[token_index] == Pubkey::default() {
+        if token_proposers.tokens.get(token_index) == Option::None {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
-            token_proposers.tokens[token_index] = Pubkey::default();
+            token_proposers.tokens.remove(token_index);
             DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
