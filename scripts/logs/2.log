@@ -6,83 +6,83 @@ Using payer account: 5Gaafgd2mZiiuVU7ZJyua3pbfXX6c7hGsY2y6ipCrXca
 Airdropping 2 SOL to local validator if needed...
 Requesting airdrop of 2 SOL
 
-Signature: 3wwY62LUCrDJ9XbSM2vdju4Nmfxb2ikbMp4sQr6mhhKn7sW9vdL2dPCSg5ERnZSZYE7tSZ9GPcvhcgYf1j8rQ3FD
+Signature: YU1RfDGRvVMAeBT9fgnMBxPkJKJdDE2ftc6h5cHiTtLA1FQF7eNxGJxDdEVRVZ98auzbTe1fEt3D1oKAUFM2CTi
 
-500000004.307046354 SOL
+500000002.301181376 SOL
 
 Step 2: Creating a new SPL Token...
-Creating token 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2 under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Creating token C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
 
-Address:  8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2
+Address:  C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i
 Decimals:  9
 
-Signature: 4yRZfjNkNovEiZPBCWwKRi3qpiFnCoT3pJpyjZ94cygPtnkNaLFATnTst7vjT5gm3op9FKS5xaRLHSDZRhb56amf
-Token Mint created with address: 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2
+Signature: 4eYR73HdvRddcziD8yVMy9i8yd7vCZhVbmP3Bp15dn7bqHP8hm4uWY2fggzeEVTpdrMCkLfQQyFn5FBGEfJvmaep
+Token Mint created with address: C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i
 
 Step 3: Creating 3 keypairs for the multisig...
-Signer 1 Pubkey: 7uAC2aP1gt4XfKhjGLhmUEVvkqpPTnaqxUYq3LPF4cCp
-Signer 2 Pubkey: 6RTpDaWLLrq1Dou2kJA13BHFUYjUEtiQR91imGUqms6h
-Signer 3 Pubkey: 8odcfqagT1NgLv6scsJewX7Qmj6osVtbTfVhFQAR3VNU
+Signer 1 Pubkey: 2YRrD82XvZ4ZzdLvgzSWNPNXdXhMMHh4yU7yy91avWfF
+Signer 2 Pubkey: 56Nk2rcBeviqkibXnPdSKujnzVf6i9AyFkne3KU19tYu
+Signer 3 Pubkey: 2hsDTE5791zW7p5vtgtrjk3cpebuzsn5Cvb7vomer38a
 
 Step 4: Creating the 1-of-3 Multisig Account...
-Creating 1/3 multisig CcCXQHjqnySGTXMyrbGSjvfchy15MTaNBqLCLVXPbmd4 under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Creating 1/3 multisig C8wkL2wPkJNN5UfKrxZe1Kn1Evn8rwVonmfmbAbmkG2o under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
 
-Signature: 2Wf58Y2yacmJWJdZMjGZrY1z2mLkohYBe2hCmTGYJDtB4rSCCcsr1dXaRBbBWmNEZ7TsFyVdF4dj8dZztxWHz51p
-Multisig account created with address: CcCXQHjqnySGTXMyrbGSjvfchy15MTaNBqLCLVXPbmd4
+Signature: 3dGf2StFbr5DVLzfwjBYQBXt1futPnNRU2PzQLb8aZuwSbJMm9xYHypDDndMMofyQL69jGj3aC6xA6Ppumq1Ria7
+Multisig account created with address: C8wkL2wPkJNN5UfKrxZe1Kn1Evn8rwVonmfmbAbmkG2o
 
 Step 5: Transferring mint authority to the multisig account...
-Updating 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2
+Updating C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i
   Current mint: 5Gaafgd2mZiiuVU7ZJyua3pbfXX6c7hGsY2y6ipCrXca
-  New mint: CcCXQHjqnySGTXMyrbGSjvfchy15MTaNBqLCLVXPbmd4
+  New mint: C8wkL2wPkJNN5UfKrxZe1Kn1Evn8rwVonmfmbAbmkG2o
 
-Signature: 5ZmFa69hKfzUSTRkvLaV9St1uAk1JzNnwnyvkwma6jC3n5pusnvWZZN6rJ2zoTwXRS9jZhQ36Sf4iz2AZiMMTK2u
+Signature: 3RS8wysy2EBUbQ8v1Mw4Bf2MVYd5qLTtwqRg92P3YN4AfujbHP1FR3xxZR9n9aeh9rDNwPQXtRXtqfcbfJga9Ncv
 
-Mint authority for token 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2 transferred to CcCXQHjqnySGTXMyrbGSjvfchy15MTaNBqLCLVXPbmd4
+Mint authority for token C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i transferred to C8wkL2wPkJNN5UfKrxZe1Kn1Evn8rwVonmfmbAbmkG2o
 
 Step 6: Funding the 3 multisig signer wallets...
 
   Processing signer wallet #1...
-  Signer Wallet Pubkey: 7uAC2aP1gt4XfKhjGLhmUEVvkqpPTnaqxUYq3LPF4cCp
-Creating account 4q6gfb8cTnWthbdR7cun8dKcrnFjhnSbNaZjuwMjD5s3
+  Signer Wallet Pubkey: 2YRrD82XvZ4ZzdLvgzSWNPNXdXhMMHh4yU7yy91avWfF
+Creating account H5VM4oTLmJo3ZjHvKRWkbzMj13W5wfBnS2wYv5c9MJGJ
 
-Signature: 5cEDymMXsuAjMihV755XvYcu7g2wN4oHnBSGuiJXgpDR3G3fxy6MtCyZPHMAsPDdtMGN2iGUxkjpFrmaL6mT1P5m
-  Token Account: 4q6gfb8cTnWthbdR7cun8dKcrnFjhnSbNaZjuwMjD5s3
+Signature: BW7jDzVbJqeWv458DHc43aMuXa2JL8UbtFou4xZgfxmAy45Umg5Ubi1YeDwfUksVVxRSvEfEashxYpp6e16T5ZY
+  Token Account: H5VM4oTLmJo3ZjHvKRWkbzMj13W5wfBnS2wYv5c9MJGJ
   Minting 1,000,000 tokens...
 Minting 1000000 tokens
-  Token: 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2
-  Recipient: 4q6gfb8cTnWthbdR7cun8dKcrnFjhnSbNaZjuwMjD5s3
+  Token: C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i
+  Recipient: H5VM4oTLmJo3ZjHvKRWkbzMj13W5wfBnS2wYv5c9MJGJ
 
-Signature: 4UY4A4Rmdg54H7QrvarTiBWWMBP9W8fHpTjMB4gDZRKPegnwTPhcyvmh6n4wZwWuz6gSAziRuS1xEko7YJdR35BY
+Signature: y8qpoNLRiY8csub8JSqZXqTVcFCWYe1ekMG9F762UqrFjudfZePx5iuEjpMKKPKtGvCUnCfBwhLkEXQzcdHoT7K
 
   Mint successful.
 
   Processing signer wallet #2...
-  Signer Wallet Pubkey: 6RTpDaWLLrq1Dou2kJA13BHFUYjUEtiQR91imGUqms6h
-Creating account BxbhJBxFMUQ1FgE6e3sxoSaFWVhj4QHc8G8e5C2ZhZ5r
+  Signer Wallet Pubkey: 56Nk2rcBeviqkibXnPdSKujnzVf6i9AyFkne3KU19tYu
+Creating account HHsXw4N4HMCYERyuX7DbE12sPckB9de4aKUYAz8488Dr
 
-Signature: 3NJcYT4FSHzsraRZcGiDCw4BJJCQYEt8nfpffKvckitYPU4d4hqgW5ou5w75vKtR4is12ajSnNdEjQSTEgahtxTC
-  Token Account: BxbhJBxFMUQ1FgE6e3sxoSaFWVhj4QHc8G8e5C2ZhZ5r
+Signature: 5NpawCDYtGV8z6ZqDx1WZe34SmTUyySDaDW5p1RjuVJRYVi6YkbDGmP8K46Nbz6zCqAYCGMQKtwf72Cb4VssYTWJ
+  Token Account: HHsXw4N4HMCYERyuX7DbE12sPckB9de4aKUYAz8488Dr
   Minting 1,000,000 tokens...
 Minting 1000000 tokens
-  Token: 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2
-  Recipient: BxbhJBxFMUQ1FgE6e3sxoSaFWVhj4QHc8G8e5C2ZhZ5r
+  Token: C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i
+  Recipient: HHsXw4N4HMCYERyuX7DbE12sPckB9de4aKUYAz8488Dr
 
-Signature: 2PxVASURJYLrymoeCw7yBXHG2k4HBmWAYxshP8ewDDb6bXJfneRLfdUqF9RP943CfXiX5mSjkp1pXNEXh21Jyhng
+Signature: 2soZWQY9KF7aUvhyz5FrEt5ci8z5xznwoppZbLjqitsECjVHrfyzfmTe8WVhTJkX8yLZX4Cn3aQWW6G1xqaMFCXY
 
   Mint successful.
 
   Processing signer wallet #3...
-  Signer Wallet Pubkey: 8odcfqagT1NgLv6scsJewX7Qmj6osVtbTfVhFQAR3VNU
-Creating account GQ7WnuSuRA8aaH7nETZdj1PCrV2kM83YFdNnnM5eCwxh
+  Signer Wallet Pubkey: 2hsDTE5791zW7p5vtgtrjk3cpebuzsn5Cvb7vomer38a
+Creating account 4CeJrHCSdM9LfknXMMZgLeS6ZrHVsoXWpiDhNshMoFyR
 
-Signature: 478augUikyTjhXJyk6bX3Ki7XKXhzwxTV8ajWpgy8mMwG1XGr5AvYZieN2XFx2MP2u1xD2eBkpVtttRkhfhSGwgn
-  Token Account: GQ7WnuSuRA8aaH7nETZdj1PCrV2kM83YFdNnnM5eCwxh
+Signature: 3gJLkdPEoA7sm1X3gqRtVdNdg42wMC1ckqwU6WBnncNXYjh6tyMWceW4yoD2uwMbaEHdiaL5L9iyT5uNjG8D5YrR
+  Token Account: 4CeJrHCSdM9LfknXMMZgLeS6ZrHVsoXWpiDhNshMoFyR
   Minting 1,000,000 tokens...
 Minting 1000000 tokens
-  Token: 8eV9zq6m4xctKdACQSgTGywJYQYCsnixMPzoFqXVZxA2
-  Recipient: GQ7WnuSuRA8aaH7nETZdj1PCrV2kM83YFdNnnM5eCwxh
+  Token: C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i
+  Recipient: 4CeJrHCSdM9LfknXMMZgLeS6ZrHVsoXWpiDhNshMoFyR
 
-Signature: 47uV2sgwcPJodZ2hS4xYso7tips6SeSuitovkuPATYig5gskHHp7BQZ6MQMgkDnTby7ojZSTwUuBxR1fnHzeGZDE
+Signature: 2C8eVmYLBKmAGT7LpCLevPHK6o4yF6BuaGDCL3xQFNcMGeCqGjM4oPQcNVTXNnZfHtbAhZbn4oBzMuUmiTtaenE6
 
   Mint successful.
 

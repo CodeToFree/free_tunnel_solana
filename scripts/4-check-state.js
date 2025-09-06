@@ -56,7 +56,7 @@ async function main() {
 
   // Your program uses a 4-byte little-endian u32 for the length prefix
   const dataLength = accountInfo.data.readUInt32LE(0);
-  const dataBuffer = accountInfo.data.slice(4, 4 + dataLength);
+  const dataBuffer = accountInfo.data.subarray(4, 4 + dataLength);
 
   const decodedData = borsh.deserialize(
     TOKENS_AND_PROPOSERS_SCHEMA,

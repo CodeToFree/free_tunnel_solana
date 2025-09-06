@@ -110,6 +110,7 @@ impl Processor {
             FreeTunnelInstruction::AddToken {
                 token_index,
                 token_pubkey,
+                token_decimals,
             } => {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
@@ -121,6 +122,7 @@ impl Processor {
                     data_account_tokens_proposers,
                     token_index,
                     &token_pubkey,
+                    token_decimals,
                 )
             }
             FreeTunnelInstruction::RemoveToken { token_index } => {
@@ -706,6 +708,7 @@ impl Processor {
         data_account_tokens_proposers: &AccountInfo<'a>,
         token_index: u8,
         token_pubkey: &Pubkey,
+        token_decimals: u8,
     ) -> ProgramResult {
         // Check data account conditions
         DataAccountUtils::check_account_match_batch(
@@ -730,6 +733,8 @@ impl Processor {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
             token_proposers.tokens.insert(token_index, *token_pubkey);
+            token_proposers.decimals.insert(token_index, token_decimals);
+            token_proposers.locked_balance.insert(token_index, 0);
             DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }
@@ -762,8 +767,12 @@ impl Processor {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
+        } else if token_proposers.locked_balance[token_index] != 0 {
+            Err(FreeTunnelError::TokenStillInUse.into())
         } else {
             token_proposers.tokens.remove(token_index);
+            token_proposers.decimals.remove(token_index);
+            token_proposers.locked_balance.remove(token_index);
             DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
         }
     }

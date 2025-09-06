@@ -15,31 +15,20 @@ import path from "path";
 const PROGRAM_ID = new PublicKey(
   "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
 );
-const TOKEN_MINT = new PublicKey(
-  "C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i"
-);
 
 const RPC_URL = "http://127.0.0.1:8899";
 
-// --- Instruction Data ---
-const TOKEN_TO_ADD = {
-  index: 56,
-  mint: TOKEN_MINT,
-  decimals: 9,
-};
-
-// Borsh schema for the AddToken instruction
+// Borsh schema for the AddProposer instruction
 const INSTRUCTION_SCHEMA = {
   struct: {
-    token_index: 'u8',
-    token_pubkey: { array: { type: 'u8', len: 32 } },
-    decimals: 'u8',
+    new_proposer: { array: { type: 'u8', len: 32 } },
   }
 };
 
 const GREEN = "\x1b[32m";
 const BLUE = "\x1b[34m";
 const RESET = "\x1b[0m";
+const YELLOW = "\x1b[33m";
 
 /**
  * Loads the default Solana CLI keypair to act as the admin/payer.
@@ -63,6 +52,7 @@ async function main() {
   console.log("Loading admin/payer account from default Solana CLI path...");
   const admin = loadAdminKeypair();
   console.log(`Using Admin account: ${BLUE}${admin.publicKey.toBase58()}${RESET}`);
+  console.log(`This admin account will also be added as the new proposer.`);
 
   // 2. Calculate PDA addresses
   console.log("\nCalculating PDA addresses...");
@@ -82,9 +72,7 @@ async function main() {
 
   // 3. Serialize instruction data
   const instructionDataPayload = {
-    token_index: TOKEN_TO_ADD.index,
-    token_pubkey: TOKEN_TO_ADD.mint.toBuffer(),
-    decimals: TOKEN_TO_ADD.decimals,
+    new_proposer: admin.publicKey.toBuffer(),
   };
 
   const payloadBuffer = borsh.serialize(
@@ -92,15 +80,15 @@ async function main() {
     instructionDataPayload
   );
 
-  // Prepend the instruction index (5 for AddToken)
+  // Prepend the instruction index (2 for AddProposer)
   const instructionBuffer = Buffer.concat([
-    Buffer.from([5]),
+    Buffer.from([2]),
     payloadBuffer
   ]);
 
   // 4. Create and Send Transaction
-  console.log("\nCreating AddToken instruction...");
-  const addTokenInstruction = new TransactionInstruction({
+  console.log("\nCreating AddProposer instruction...");
+  const addProposerInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       // 0. account_admin
@@ -113,7 +101,7 @@ async function main() {
     data: instructionBuffer,
   });
 
-  const transaction = new Transaction().add(addTokenInstruction);
+  const transaction = new Transaction().add(addProposerInstruction);
 
   console.log("Sending transaction...");
   const signature = await sendAndConfirmTransaction(connection, transaction, [
@@ -122,7 +110,7 @@ async function main() {
 
   console.log("\n--- Success! ---");
   console.log(`Transaction Signature: ${signature}`);
-  console.log(`Token ${BLUE}${TOKEN_TO_ADD.mint.toBase58()}${RESET} at index ${GREEN}${TOKEN_TO_ADD.index}${RESET} has been added to the program.`);
+  console.log(`Admin ${YELLOW}${admin.publicKey.toBase58()}${RESET} has been added as a proposer.`);
 }
 
 main().then(

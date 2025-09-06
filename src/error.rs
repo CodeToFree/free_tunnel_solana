@@ -32,6 +32,7 @@ pub enum FreeTunnelError {
     TokenIndexOccupied,
     TokenIndexCannotBeZero,
     TokenIndexNonExistent,
+    TokenStillInUse,
     AmountCannotBeZero,
     NotFromCurrentChain,
     NotToCurrentChain,

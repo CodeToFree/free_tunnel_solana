@@ -57,6 +57,7 @@ pub enum FreeTunnelInstruction {
     AddToken {
         token_index: u8,
         token_pubkey: Pubkey,
+        token_decimals: u8,
     },
 
     /// [6]
@@ -266,10 +267,12 @@ impl FreeTunnelInstruction {
                 })
             }
             5 => {
-                let (token_index, token_pubkey) = BorshDeserialize::try_from_slice(rest)?;
+                let (token_index, token_pubkey, token_decimals) =
+                    BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::AddToken {
                     token_index,
                     token_pubkey,
+                    token_decimals,
                 })
             }
             6 => {

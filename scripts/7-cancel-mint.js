@@ -13,27 +13,15 @@ import path from "path";
 
 // --- Configuration ---
 const PROGRAM_ID = new PublicKey(
-  "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
+  "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj" 
 );
-const TOKEN_MINT = new PublicKey(
-  "C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i"
-);
-
 const RPC_URL = "http://127.0.0.1:8899";
+const REQ_ID_PATH = path.join("scripts", "temp", "reqid.bin");
 
-// --- Instruction Data ---
-const TOKEN_TO_ADD = {
-  index: 56,
-  mint: TOKEN_MINT,
-  decimals: 9,
-};
-
-// Borsh schema for the AddToken instruction
+// Borsh schema for the CancelMint instruction's data
 const INSTRUCTION_SCHEMA = {
   struct: {
-    token_index: 'u8',
-    token_pubkey: { array: { type: 'u8', len: 32 } },
-    decimals: 'u8',
+    req_id: { array: { type: 'u8', len: 32 } },
   }
 };
 
@@ -42,7 +30,7 @@ const BLUE = "\x1b[34m";
 const RESET = "\x1b[0m";
 
 /**
- * Loads the default Solana CLI keypair to act as the admin/payer.
+ * Loads the default Solana CLI keypair to act as the admin/payer/proposer.
  * @returns {Keypair} The keypair loaded from the default path.
  */
 function loadAdminKeypair() {
@@ -54,15 +42,30 @@ function loadAdminKeypair() {
   return Keypair.fromSecretKey(new Uint8Array(secretKey));
 }
 
+/**
+ * Loads the previously saved ReqId from a binary file.
+ * @returns {Buffer} The 32-byte ReqId buffer.
+ */
+function loadReqId() {
+  if (!fs.existsSync(REQ_ID_PATH)) {
+    throw new Error(`Could not find ReqId file at ${REQ_ID_PATH}. Please run 6-propose-mint.js first.`);
+  }
+  return fs.readFileSync(REQ_ID_PATH);
+}
+
 
 async function main() {
-  // 1. Setup accounts
+  // 1. Setup accounts and load data
   console.log("\nConnecting to local validator...");
   const connection = new Connection(RPC_URL, "confirmed");
 
-  console.log("Loading admin/payer account from default Solana CLI path...");
-  const admin = loadAdminKeypair();
-  console.log(`Using Admin account: ${BLUE}${admin.publicKey.toBase58()}${RESET}`);
+  console.log("Loading proposer/payer account from default Solana CLI path...");
+  const proposer = loadAdminKeypair();
+  console.log(`Using Proposer account: ${BLUE}${proposer.publicKey.toBase58()}${RESET}`);
+
+  console.log(`Loading ReqId from: ${BLUE}${REQ_ID_PATH}${RESET}`);
+  const reqId = loadReqId();
+  console.log(`ReqId (hex): ${GREEN}${reqId.toString('hex')}${RESET}`);
 
   // 2. Calculate PDA addresses
   console.log("\nCalculating PDA addresses...");
@@ -72,19 +75,17 @@ async function main() {
     PROGRAM_ID
   );
 
-  const [tokensProposersPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("tokens-proposers")],
+  const [proposedMintPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("mint"), reqId],
     PROGRAM_ID
   );
 
   console.log(`PDA ${BLUE}[Basic Storage]${RESET}: ${basicStoragePda.toBase58()}`);
-  console.log(`PDA ${BLUE}[Tokens/Proposers]${RESET}: ${tokensProposersPda.toBase58()}`);
+  console.log(`PDA ${BLUE}[Proposed Mint]${RESET}: ${proposedMintPda.toBase58()}`);
 
   // 3. Serialize instruction data
   const instructionDataPayload = {
-    token_index: TOKEN_TO_ADD.index,
-    token_pubkey: TOKEN_TO_ADD.mint.toBuffer(),
-    decimals: TOKEN_TO_ADD.decimals,
+    req_id: reqId,
   };
 
   const payloadBuffer = borsh.serialize(
@@ -92,37 +93,37 @@ async function main() {
     instructionDataPayload
   );
 
-  // Prepend the instruction index (5 for AddToken)
+  // Prepend the instruction index (10 for CancelMint)
   const instructionBuffer = Buffer.concat([
-    Buffer.from([5]),
+    Buffer.from([10]),
     payloadBuffer
   ]);
 
   // 4. Create and Send Transaction
-  console.log("\nCreating AddToken instruction...");
-  const addTokenInstruction = new TransactionInstruction({
+  console.log("\nCreating CancelMint instruction...");
+  const cancelMintInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
-      // 0. account_admin
-      { pubkey: admin.publicKey, isSigner: true, isWritable: false },
-      // 1. data_account_basic_storage
+      // 0. data_account_basic_storage
       { pubkey: basicStoragePda, isSigner: false, isWritable: false },
-      // 2. data_account_tokens_proposers
-      { pubkey: tokensProposersPda, isSigner: false, isWritable: true },
+      // 1. data_account_proposed_mint
+      { pubkey: proposedMintPda, isSigner: false, isWritable: true },
     ],
     data: instructionBuffer,
   });
 
-  const transaction = new Transaction().add(addTokenInstruction);
+  // Note: CancelMint might be permissionless after a timeout, 
+  // but for testing, we'll have the proposer sign to also pay for the transaction.
+  const transaction = new Transaction().add(cancelMintInstruction);
 
   console.log("Sending transaction...");
   const signature = await sendAndConfirmTransaction(connection, transaction, [
-    admin,
+    proposer,
   ]);
 
   console.log("\n--- Success! ---");
   console.log(`Transaction Signature: ${signature}`);
-  console.log(`Token ${BLUE}${TOKEN_TO_ADD.mint.toBase58()}${RESET} at index ${GREEN}${TOKEN_TO_ADD.index}${RESET} has been added to the program.`);
+  console.log(`Mint proposal for ReqId ${GREEN}${reqId.toString('hex').substring(0, 16)}...${RESET} has been cancelled.`);
 }
 
 main().then(
