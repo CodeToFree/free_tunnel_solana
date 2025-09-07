@@ -17,12 +17,14 @@ const PROGRAM_ID = new PublicKey(
   "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
 );
 const RPC_URL = "http://127.0.0.1:8899";
-const REQ_ID_PATH = path.join("scripts", "temp", "reqid.bin");
+const TEMP_DIR = path.join("scripts", "temp");
+const REQ_ID_PATH = path.join(TEMP_DIR, "reqid.bin");
+const PROPOSAL_DETAILS_PATH = path.join(TEMP_DIR, "proposal_details.json");
 
 // --- Instruction Data ---
 const PROPOSAL_DETAILS = {
   version: 1,
-  action: 1, // 1 for Mint/Lock
+  action: 1, // 1 for Mint
   tokenIndex: 56,
   amount: BigInt(123456),
   fromChain: 0xff,
@@ -37,16 +39,16 @@ const INSTRUCTION_SCHEMA = {
   }
 };
 
-const GREEN="\x1b[32m";
-const BLUE="\x1b[34m";
-const RESET="\x1b[0m";
-const YELLOW="\x1b[33m";
+const GREEN = "\x1b[32m";
+const BLUE = "\x1b[34m";
+const RESET = "\x1b[0m";
+const YELLOW = "\x1b[33m";
 
 /**
  * Loads the default Solana CLI keypair to act as the proposer/payer.
  * @returns {Keypair} The keypair loaded from the default path.
  */
-function loadProposerKeypair() {
+function loadAdminKeypair() {
   const keypairPath = path.join(os.homedir(), '.config', 'solana', 'id.json');
   if (!fs.existsSync(keypairPath)) {
     throw new Error("Could not find Solana CLI keypair at default path. Please ensure it exists.");
@@ -56,76 +58,83 @@ function loadProposerKeypair() {
 }
 
 /**
- * Creates and serializes a ReqId based on the provided details.
+ * Creates, encodes, and saves the proposal data (ReqId and recipient).
+ * @param {PublicKey} recipientPublicKey - The public key of the recipient.
  * @returns {Buffer} A 32-byte buffer representing the ReqId.
  */
-function createAndSaveReqId() {
+function createAndSaveProposalData(recipientPublicKey) {
   const reqIdBuffer = Buffer.alloc(32);
   let offset = 0;
 
-  // version: uint8
+  // version: u8
   reqIdBuffer.writeUInt8(PROPOSAL_DETAILS.version, offset);
   offset += 1;
 
-  // createdTime: uint40 (5 bytes), using Big-Endian
+  // createdTime: u40 (5 bytes), Big-Endian
   const timestamp = BigInt(Math.floor(Date.now() / 1000));
   const timeBuffer = Buffer.alloc(8);
-  timeBuffer.writeBigUInt64BE(timestamp); // <-- MODIFIED TO BE
-  timeBuffer.copy(reqIdBuffer, offset, 3, 8); // Use last 5 bytes of the 8-byte buffer
+  timeBuffer.writeBigUInt64BE(timestamp);
+  timeBuffer.copy(reqIdBuffer, offset, 3, 8); // Copy last 5 bytes
   offset += 5;
-  
-  // action: uint8
+
+  // action: u8
   reqIdBuffer.writeUInt8(PROPOSAL_DETAILS.action, offset);
   offset += 1;
 
-  // tokenIndex: uint8
+  // tokenIndex: u8
   reqIdBuffer.writeUInt8(PROPOSAL_DETAILS.tokenIndex, offset);
   offset += 1;
 
-  // amount: uint64, using Big-Endian
-  reqIdBuffer.writeBigUInt64BE(PROPOSAL_DETAILS.amount, offset); // <-- MODIFIED TO BE
+  // amount: u64, Big-Endian
+  reqIdBuffer.writeBigUInt64BE(PROPOSAL_DETAILS.amount, offset);
   offset += 8;
 
-  // from: uint8
+  // from: u8
   reqIdBuffer.writeUInt8(PROPOSAL_DETAILS.fromChain, offset);
   offset += 1;
-  
-  // to: uint8
+
+  // to: u8
   reqIdBuffer.writeUInt8(PROPOSAL_DETAILS.toChain, offset);
   offset += 1;
 
-  // The rest is padding (14 bytes), which is already zero from Buffer.alloc()
-
-  // Save the ReqId for later use
-  const dir = path.dirname(REQ_ID_PATH);
-  if (!fs.existsSync(dir)){
-      fs.mkdirSync(dir, { recursive: true });
+  // --- Save files ---
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
   }
+
+  // Save binary ReqId
   fs.writeFileSync(REQ_ID_PATH, reqIdBuffer);
   console.log(`\n${GREEN}ReqId created and saved to:${RESET} ${BLUE}${REQ_ID_PATH}${RESET}`);
   console.log(`ReqId (hex): ${YELLOW}${reqIdBuffer.toString('hex')}${RESET}`);
+
+  // Save full proposal details to JSON for later scripts
+  const details = {
+    reqIdHex: reqIdBuffer.toString('hex'),
+    recipient: recipientPublicKey.toBase58()
+  };
+  fs.writeFileSync(PROPOSAL_DETAILS_PATH, JSON.stringify(details, null, 2));
+  console.log(`Proposal details saved to: ${BLUE}${PROPOSAL_DETAILS_PATH}${RESET}`);
 
   return reqIdBuffer;
 }
 
 
 async function main() {
-  // 1. Setup accounts
+  // 1. Setup accounts and data
   console.log("\nConnecting to local validator...");
   const connection = new Connection(RPC_URL, "confirmed");
 
   console.log("Loading proposer/payer account from default Solana CLI path...");
-  const proposer = loadProposerKeypair();
+  const proposer = loadAdminKeypair();
   console.log(`Using Proposer account: ${BLUE}${proposer.publicKey.toBase58()}${RESET}`);
 
-  // Generate a new wallet to be the recipient of the proposed mint
   const recipient = Keypair.generate();
-  console.log(`Generated recipient address: ${BLUE}${recipient.publicKey.toBase58()}${RESET}`);
+  console.log(`Generated recipient address: ${GREEN}${recipient.publicKey.toBase58()}${RESET}`);
 
-  // 2. Create and Save ReqId
-  const reqId = createAndSaveReqId();
+  // Create and save both the binary ReqId and the JSON details file
+  const reqId = createAndSaveProposalData(recipient.publicKey);
 
-  // 3. Calculate PDA addresses
+  // 2. Calculate PDA addresses
   console.log("\nCalculating PDA addresses...");
 
   const [basicStoragePda] = PublicKey.findProgramAddressSync(
@@ -136,7 +145,6 @@ async function main() {
     [Buffer.from("tokens-proposers")],
     PROGRAM_ID
   );
-  // This PDA depends on the unique ReqId
   const [proposedMintPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("mint"), reqId],
     PROGRAM_ID
@@ -146,8 +154,7 @@ async function main() {
   console.log(`PDA ${BLUE}[Tokens/Proposers]${RESET}: ${tokensProposersPda.toBase58()}`);
   console.log(`PDA ${BLUE}[Proposed Mint]${RESET}: ${proposedMintPda.toBase58()}`);
 
-
-  // 4. Serialize instruction data
+  // 3. Serialize instruction data
   const instructionDataPayload = {
     req_id: reqId,
     recipient: recipient.publicKey.toBuffer(),
@@ -164,7 +171,7 @@ async function main() {
     payloadBuffer
   ]);
 
-  // 5. Create and Send Transaction
+  // 4. Create and Send Transaction
   console.log("\nCreating ProposeMint instruction...");
   const proposeMintInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
@@ -200,7 +207,7 @@ async function main() {
 main().then(
   () => process.exit(0),
   (err) => {
-    console.error(err);
+    console.error("Error in main function:", err);
     process.exit(1);
   }
 );

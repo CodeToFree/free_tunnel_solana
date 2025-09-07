@@ -15,17 +15,14 @@ import path from "path";
 const PROGRAM_ID = new PublicKey(
   "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
 );
-const TOKEN_MINT = new PublicKey(
-  "C7ooCXLEErUgffSyYcg329vhW6K7m3cx99bbzH7Uig3i"
-);
-
+const TOKEN_DETAILS_PATH = path.join("scripts", "temp", "token_details.json");
 const RPC_URL = "http://127.0.0.1:8899";
 
 // --- Instruction Data ---
 const TOKEN_TO_ADD = {
   index: 56,
-  mint: TOKEN_MINT,
-  decimals: 9,
+  // We will load the mint address from the file created by 2-deploy-token.sh
+  decimals: 9, // This matches the decimals set in 2-deploy-token.sh
 };
 
 // Borsh schema for the AddToken instruction
@@ -33,7 +30,7 @@ const INSTRUCTION_SCHEMA = {
   struct: {
     token_index: 'u8',
     token_pubkey: { array: { type: 'u8', len: 32 } },
-    decimals: 'u8',
+    token_decimals: 'u8',
   }
 };
 
@@ -54,6 +51,17 @@ function loadAdminKeypair() {
   return Keypair.fromSecretKey(new Uint8Array(secretKey));
 }
 
+/**
+ * Loads token details from the generated JSON file.
+ * @returns {{tokenMint: string, multisigAddress: string, multisigSigners: string[]}}
+ */
+function loadTokenDetails() {
+    if (!fs.existsSync(TOKEN_DETAILS_PATH)) {
+        throw new Error(`Could not find token details file at ${TOKEN_DETAILS_PATH}. Please run 2-deploy-token.sh first.`);
+    }
+    return JSON.parse(fs.readFileSync(TOKEN_DETAILS_PATH, 'utf-8'));
+}
+
 
 async function main() {
   // 1. Setup accounts
@@ -63,6 +71,12 @@ async function main() {
   console.log("Loading admin/payer account from default Solana CLI path...");
   const admin = loadAdminKeypair();
   console.log(`Using Admin account: ${BLUE}${admin.publicKey.toBase58()}${RESET}`);
+
+  console.log(`Loading token details from ${BLUE}${TOKEN_DETAILS_PATH}${RESET}...`);
+  const tokenDetails = loadTokenDetails();
+  const TOKEN_MINT = new PublicKey(tokenDetails.tokenMint);
+  console.log(`Token Mint to add: ${GREEN}${TOKEN_MINT.toBase58()}${RESET}`);
+
 
   // 2. Calculate PDA addresses
   console.log("\nCalculating PDA addresses...");
@@ -83,8 +97,8 @@ async function main() {
   // 3. Serialize instruction data
   const instructionDataPayload = {
     token_index: TOKEN_TO_ADD.index,
-    token_pubkey: TOKEN_TO_ADD.mint.toBuffer(),
-    decimals: TOKEN_TO_ADD.decimals,
+    token_pubkey: TOKEN_MINT.toBuffer(),
+    token_decimals: TOKEN_TO_ADD.decimals,
   };
 
   const payloadBuffer = borsh.serialize(
@@ -122,7 +136,7 @@ async function main() {
 
   console.log("\n--- Success! ---");
   console.log(`Transaction Signature: ${signature}`);
-  console.log(`Token ${BLUE}${TOKEN_TO_ADD.mint.toBase58()}${RESET} at index ${GREEN}${TOKEN_TO_ADD.index}${RESET} has been added to the program.`);
+  console.log(`Token ${BLUE}${TOKEN_MINT.toBase58()}${RESET} at index ${GREEN}${TOKEN_TO_ADD.index}${RESET} has been added to the program.`);
 }
 
 main().then(
