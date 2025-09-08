@@ -116,7 +116,7 @@ impl AtomicMint {
     }
 
     pub(crate) fn execute_mint_internal<'a>(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_tokens_proposers: &AccountInfo<'a>,
@@ -126,7 +126,7 @@ impl AtomicMint {
         token_account_recipient: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
-        account_multisig_wallets: &[AccountInfo<'a>],
+        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
@@ -169,28 +169,28 @@ impl AtomicMint {
         }
 
         // Mint to recipient
-        let mut accounts = vec![
-            account_token_mint.clone(),
-            token_account_recipient.clone(),
-            account_multisig_owner.clone(),
-        ];
-        for w in account_multisig_wallets {
-            accounts.push(w.clone());
+        let (pda_key, bump_seed) =
+            Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
+        if pda_key != *account_contract_signer.key {
+            return Err(FreeTunnelError::ContractSignerMismatch.into());
         }
         invoke_signed(
             &mint_to(
                 system_account_token_program.key,
                 account_token_mint.key,
                 token_account_recipient.key,
-                account_multisig_owner.key,
-                &account_multisig_wallets
-                    .iter()
-                    .map(|w| w.key)
-                    .collect::<Vec<&Pubkey>>(),
+                account_multisig_owner.key, // The 1/3 multisig account is the authority
+                &[account_contract_signer.key], // The PDA is the ONLY signer required for this CPI
                 amount,
             )?,
-            &accounts,
-            &[],
+            // The accounts required by the `mint_to` CPI
+            &[
+                account_token_mint.clone(),
+                token_account_recipient.clone(),
+                account_multisig_owner.clone(),
+                account_contract_signer.clone(), // The PDA account must be passed to the CPI
+            ],
+            &[&[Constants::CONTRACT_SIGNER, &[bump_seed]][..]],
         )
     }
 

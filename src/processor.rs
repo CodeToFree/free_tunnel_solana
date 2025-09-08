@@ -190,7 +190,7 @@ impl Processor {
                 let token_account_recipient = next_account_info(accounts_iter)?;
                 let account_token_mint = next_account_info(accounts_iter)?;
                 let account_multisig_owner = next_account_info(accounts_iter)?;
-                let account_multisig_wallets = accounts_iter.as_slice();
+                let account_contract_signer = next_account_info(accounts_iter)?;
                 Self::process_execute_mint(
                     program_id,
                     system_account_token_program,
@@ -202,7 +202,7 @@ impl Processor {
                     token_account_recipient,
                     account_token_mint,
                     account_multisig_owner,
-                    account_multisig_wallets,
+                    account_contract_signer,
                     &req_id,
                     &signatures,
                     &executors,
@@ -872,7 +872,7 @@ impl Processor {
         token_account_recipient: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
-        account_multisig_wallets: &[AccountInfo<'a>],
+        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
@@ -917,7 +917,7 @@ impl Processor {
             token_account_recipient,
             account_token_mint,
             account_multisig_owner,
-            account_multisig_wallets,
+            account_contract_signer,
             req_id,
             signatures,
             executors,

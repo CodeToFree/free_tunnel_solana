@@ -94,7 +94,7 @@ pub enum FreeTunnelInstruction {
     /// 6. token_account_recipient: token account for the recipient, should be different for each token
     /// 7. account_token_mint: token mint account (token contract address)
     /// 8. account_multisig_owner: multisig owner account
-    /// 9..n account_multisig_wallets: multisig wallets accounts
+    /// 9. account_contract_signer: contract signer that can sign for the token transfer
     ExecuteMint {
         req_id: ReqId,
         signatures: Vec<[u8; 64]>,

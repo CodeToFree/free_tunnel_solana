@@ -23,9 +23,9 @@ const PROGRAM_ID = new PublicKey(
 );
 const RPC_URL = "http://127.0.0.1:8899";
 const TEMP_DIR = path.join("scripts", "temp");
-const SIGNER1_KEYPAIR_PATH = path.join("keys", "signer1.json");
 const TOKEN_DETAILS_PATH = path.join(TEMP_DIR, "token_details.json");
 const PROPOSAL_DETAILS_PATH = path.join(TEMP_DIR, "proposal_details.json");
+const PDAS_FILE_PATH = path.join(TEMP_DIR, "program_pdas.json");
 const REQ_ID_PATH = path.join(TEMP_DIR, "reqid.bin");
 
 // Borsh schema for the ExecuteMint instruction
@@ -76,20 +76,18 @@ async function main() {
 
   console.log("Loading admin/payer account...");
   const admin = loadKeypairFromFile(path.join(os.homedir(), '.config', 'solana', 'id.json'));
-  const signer1 = loadKeypairFromFile(SIGNER1_KEYPAIR_PATH);
   console.log(`Using Admin/Payer account: ${BLUE}${admin.publicKey.toBase58()}${RESET}`);
-  console.log(`Using Multisig Signer #1: ${BLUE}${signer1.publicKey.toBase58()}${RESET}`);
-  console.log(`Using Admin account: ${BLUE}${admin.publicKey.toBase58()}${RESET}`);
 
   console.log("Loading details from temp files...");
   const tokenDetails = loadJsonFile(TOKEN_DETAILS_PATH);
   const proposalDetails = loadJsonFile(PROPOSAL_DETAILS_PATH);
+  const programPdas = loadJsonFile(PDAS_FILE_PATH);
   const reqId = fs.readFileSync(REQ_ID_PATH);
 
   const tokenMint = new PublicKey(tokenDetails.tokenMint);
   const multisigAddress = new PublicKey(tokenDetails.multisigAddress);
-  const multisigSigners = tokenDetails.multisigSigners.map(pk => new PublicKey(pk));
   const recipient = new PublicKey(proposalDetails.recipient);
+  const contractSignerPda = new PublicKey(programPdas.contractSigner);
 
   // 2. Prepare recipient's token account
   console.log(`\nPreparing token account for recipient: ${BLUE}${recipient.toBase58()}${RESET}`);
@@ -98,7 +96,6 @@ async function main() {
 
   const transaction = new Transaction();
 
-  // Check if the recipient's token account exists. If not, add an instruction to create it.
   const accountInfo = await connection.getAccountInfo(recipientTokenAccount);
   if (accountInfo === null) {
     console.log("Recipient token account does not exist. Adding instruction to create it...");
@@ -114,10 +111,8 @@ async function main() {
     console.log("Recipient token account already exists.");
   }
 
-  // 3. Calculate PDA addresses
+  // 3. Calculate remaining PDA addresses
   console.log("\nCalculating PDA addresses...");
-  const [basicStoragePda] = PublicKey.findProgramAddressSync([Buffer.from("basic-storage")], PROGRAM_ID);
-  const [tokensProposersPda] = PublicKey.findProgramAddressSync([Buffer.from("tokens-proposers")], PROGRAM_ID);
   const [proposedMintPda] = PublicKey.findProgramAddressSync([Buffer.from("mint"), reqId], PROGRAM_ID);
 
   const exeIndex = BigInt(0);
@@ -125,7 +120,6 @@ async function main() {
   exeIndexBuffer.writeBigUInt64LE(exeIndex);
   const [currentExecutorsPda] = PublicKey.findProgramAddressSync([Buffer.from("executors"), exeIndexBuffer], PROGRAM_ID);
 
-  // For `next_executors`, we calculate the PDA for index + 1. The program should handle cases where it doesn't exist.
   const nextExeIndexBuffer = Buffer.alloc(8);
   nextExeIndexBuffer.writeBigUInt64LE(exeIndex + BigInt(1));
   const [nextExecutorsPda] = PublicKey.findProgramAddressSync([Buffer.from("executors"), nextExeIndexBuffer], PROGRAM_ID);
@@ -134,7 +128,6 @@ async function main() {
   console.log(`PDA ${BLUE}[Current Executors]${RESET}: ${currentExecutorsPda.toBase58()}`);
 
   // 4. Serialize instruction data
-  // As decided, we pass empty arrays for signatures and executors to bypass the check on-chain.
   const instructionDataPayload = {
     req_id: reqId,
     signatures: [],
@@ -153,9 +146,9 @@ async function main() {
       // 0. system_account_token_program
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       // 1. data_account_basic_storage
-      { pubkey: basicStoragePda, isSigner: false, isWritable: false },
+      { pubkey: new PublicKey(programPdas.basicStorage), isSigner: false, isWritable: false },
       // 2. data_account_tokens_proposers
-      { pubkey: tokensProposersPda, isSigner: false, isWritable: false },
+      { pubkey: new PublicKey(programPdas.tokensProposers), isSigner: false, isWritable: true }, // Writable to update amount
       // 3. data_account_proposed_mint
       { pubkey: proposedMintPda, isSigner: false, isWritable: true },
       // 4. data_account_current_executors
@@ -168,8 +161,8 @@ async function main() {
       { pubkey: tokenMint, isSigner: false, isWritable: true },
       // 8. account_multisig_owner
       { pubkey: multisigAddress, isSigner: false, isWritable: false },
-      // 9..n account_multisig_wallets
-      { pubkey: signer1.publicKey, isSigner: true, isWritable: false },
+      // 9. account_contract_signer (The PDA is the sole signer for the CPI)
+      { pubkey: contractSignerPda, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,
   });
@@ -177,7 +170,8 @@ async function main() {
   transaction.add(executeMintInstruction);
 
   console.log("Sending transaction...");
-  const signature = await sendAndConfirmTransaction(connection, transaction, [admin, signer1]);
+  // Only the admin/payer needs to sign this transaction
+  const signature = await sendAndConfirmTransaction(connection, transaction, [admin]);
 
   console.log("\n--- Success! ---");
   console.log(`Transaction Signature: ${signature}`);
