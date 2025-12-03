@@ -238,7 +238,7 @@ impl DataAccountUtils {
     /// * `prefix` - Seed prefix for PDA derivation
     /// * `phrase` - Additional seed for PDA derivation
     /// * `data_length` - Size of the account data in bytes
-    pub fn create_data_account<'a>(
+    pub fn create_data_account<'a, Data: BorshSerialize>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         account_payer: &AccountInfo<'a>,
@@ -272,8 +272,8 @@ impl DataAccountUtils {
                     system_program.clone(),
                 ],
                 &[&[prefix.as_ref(), phrase.as_ref(), &[bump_seed]]],
-            );
-            write_account_data(data_account, content)
+            )?;
+            Self::write_account_data(data_account, content)
         }
     }
 

@@ -67,12 +67,12 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn init_executors_internal(
+    pub(crate) fn init_executors_internal<'a>(
         program_id: &Pubkey,
-        system_program: &AccountInfo,
-        account_payer: &AccountInfo,
+        system_program: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
-        data_account_executors_at_index: &AccountInfo,
+        data_account_executors_at_index: &AccountInfo<'a>,
         admin: &Pubkey,
         executors: &Vec<EthAddress>,
         threshold: u64,
