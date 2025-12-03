@@ -15,12 +15,14 @@ pub struct Permissions;
 impl Permissions {
     pub(crate) fn assert_only_admin(
         data_account_basic_storage: &AccountInfo,
-        signer: &Pubkey,
+        account_admin: &AccountInfo,
     ) -> ProgramResult {
         let basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
-        if &basic_storage.admin != signer {
+        if &basic_storage.admin != account_admin.key {
             Err(FreeTunnelError::NotAdmin.into())
+        } else if !account_admin.is_signer {
+            Err(FreeTunnelError::AdminNotSigner.into())
         } else {
             Ok(())
         }
@@ -73,14 +75,14 @@ impl Permissions {
         account_payer: &AccountInfo,
         data_account_basic_storage: &AccountInfo,
         data_account_executors_at_index: &AccountInfo,
-        admin: &Pubkey,
+        account_admin: &AccountInfo,
         executors: &Vec<EthAddress>,
         threshold: u64,
         exe_index: u64,
     ) -> ProgramResult {
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
-        Self::assert_only_admin(data_account_basic_storage, admin)?;
+        Self::assert_only_admin(data_account_basic_storage, account_admin)?;
         if threshold > executors.len() as u64 {
             Err(FreeTunnelError::NotMeetThreshold.into())
         } else if basic_storage.executors_group_length != 0 {
