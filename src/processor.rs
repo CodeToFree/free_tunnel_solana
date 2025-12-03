@@ -504,11 +504,6 @@ impl Processor {
             &exe_index.to_le_bytes(),
         )?;
 
-        // Check signer
-        if !account_admin.is_signer {
-            return Err(FreeTunnelError::AdminNotSigner.into());
-        }
-
         // Create data accounts and write
         DataAccountUtils::create_data_account(
             program_id,
@@ -546,7 +541,7 @@ impl Processor {
             account_payer,
             data_account_basic_storage,
             data_account_executors_at_index,
-            account_admin.key,
+            account_admin,
             executors,
             threshold,
             exe_index,
@@ -568,10 +563,7 @@ impl Processor {
         )?;
 
         // Check permissions
-        Permissions::assert_only_admin(data_account_basic_storage, account_admin.key)?;
-        if !account_admin.is_signer {
-            return Err(FreeTunnelError::AdminNotSigner.into());
-        }
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
 
         // Update storage
         let mut basic_storage: BasicStorage =
@@ -602,10 +594,7 @@ impl Processor {
         )?;
 
         // Check permissions
-        Permissions::assert_only_admin(data_account_basic_storage, account_admin.key)?;
-        if !account_admin.is_signer {
-            return Err(FreeTunnelError::AdminNotSigner.into());
-        }
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
 
         // Process
         Permissions::add_proposer_internal(data_account_tokens_proposers, new_proposer)
@@ -633,10 +622,7 @@ impl Processor {
         )?;
 
         // Check permissions
-        Permissions::assert_only_admin(data_account_basic_storage, account_admin.key)?;
-        if !account_admin.is_signer {
-            return Err(FreeTunnelError::AdminNotSigner.into());
-        }
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
 
         // Process
         Permissions::remove_proposer_internal(data_account_tokens_proposers, proposer)
@@ -706,10 +692,7 @@ impl Processor {
         )?;
 
         // Check permissions
-        Permissions::assert_only_admin(data_account_basic_storage, account_admin.key)?;
-        if !account_admin.is_signer {
-            return Err(FreeTunnelError::AdminNotSigner.into());
-        }
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
 
         // Process
         let mut token_proposers: TokensAndProposers =
@@ -742,10 +725,7 @@ impl Processor {
         )?;
 
         // Check permissions
-        Permissions::assert_only_admin(data_account_basic_storage, account_admin.key)?;
-        if !account_admin.is_signer {
-            return Err(FreeTunnelError::AdminNotSigner.into());
-        }
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
 
         // Process
         let mut token_proposers: TokensAndProposers =
