@@ -39,26 +39,26 @@ impl AtomicMint {
 
     pub(crate) fn check_propose_mint<'a>(
         data_account_tokens_proposers: &AccountInfo<'a>,
-        proposer: &Pubkey,
+        account_proposer: &AccountInfo,
         req_id: &ReqId,
     ) -> ProgramResult {
         if req_id.action() & 0x0f != 1 {
             Err(FreeTunnelError::NotLockMint.into())
         } else {
-            Permissions::assert_only_proposer(data_account_tokens_proposers, proposer)?;
+            Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
             req_id.assert_to_chain_only()
         }
     }
 
     pub(crate) fn check_propose_mint_from_burn<'a>(
         data_account_tokens_proposers: &AccountInfo<'a>,
-        proposer: &Pubkey,
+        account_proposer: &AccountInfo,
         req_id: &ReqId,
     ) -> ProgramResult {
         if req_id.action() & 0x0f != 3 {
             Err(FreeTunnelError::NotBurnMint.into())
         } else {
-            Permissions::assert_only_proposer(data_account_tokens_proposers, proposer)?;
+            Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
             req_id.assert_to_chain_only()
         }
     }

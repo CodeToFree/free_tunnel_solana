@@ -770,7 +770,7 @@ impl Processor {
         }
         AtomicMint::check_propose_mint(
             data_account_tokens_proposers,
-            account_proposer.key,
+            account_proposer,
             req_id,
         )?;
 
@@ -812,7 +812,7 @@ impl Processor {
         }
         AtomicMint::check_propose_mint_from_burn(
             data_account_tokens_proposers,
-            account_proposer.key,
+            account_proposer,
             req_id,
         )?;
 

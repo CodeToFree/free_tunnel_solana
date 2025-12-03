@@ -210,7 +210,7 @@ impl AtomicLock {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check conditions
-        Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer.key)?;
+        Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
         req_id.assert_from_chain_only()?;
         req_id.checked_created_time()?;
         if req_id.action() & 0x0f != 2 {

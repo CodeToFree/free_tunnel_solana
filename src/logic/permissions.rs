@@ -30,12 +30,14 @@ impl Permissions {
 
     pub(crate) fn assert_only_proposer(
         data_account_tokens_proposers: &AccountInfo,
-        signer: &Pubkey,
+        account_proposer: &AccountInfo,
     ) -> ProgramResult {
         let token_proposers: TokensAndProposers =
             DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if !token_proposers.proposers.contains(&signer) {
+        if !token_proposers.proposers.contains(account_proposer.key) {
             Err(FreeTunnelError::NotProposer.into())
+        } else if !account_proposer.is_signer {
+            Err(FreeTunnelError::ProposerNotSigner.into())
         } else {
             Ok(())
         }
