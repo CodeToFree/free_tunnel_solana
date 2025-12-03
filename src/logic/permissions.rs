@@ -68,6 +68,9 @@ impl Permissions {
     }
 
     pub(crate) fn init_executors_internal(
+        program_id: &Pubkey,
+        system_program: &AccountInfo,
+        account_payer: &AccountInfo,
         data_account_basic_storage: &AccountInfo,
         data_account_executors_at_index: &AccountInfo,
         admin: &Pubkey,
@@ -88,8 +91,16 @@ impl Permissions {
             basic_storage.executors_group_length = exe_index + 1;
             SignatureUtils::check_executors_not_duplicated(executors)?;
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
-            DataAccountUtils::write_account_data(
+
+            // Process init-executors
+            DataAccountUtils::create_data_account(
+                program_id,
+                system_program,
+                account_payer,
                 data_account_executors_at_index,
+                Constants::PREFIX_EXECUTORS,
+                &exe_index.to_le_bytes(),
+                Constants::SIZE_EXECUTORS_STORAGE + Constants::SIZE_LENGTH,
                 ExecutorsInfo {
                     index: exe_index,
                     threshold,

@@ -510,34 +510,28 @@ impl Processor {
         }
 
         // Create data accounts and write
-        DataAccountUtils::create_related_account(
+        DataAccountUtils::create_data_account(
             program_id,
+            system_program,
             account_payer,
             data_account_basic_storage,
-            system_program,
             Constants::BASIC_STORAGE,
             b"",
             Constants::SIZE_BASIC_STORAGE + Constants::SIZE_LENGTH,
-        )?;
-        DataAccountUtils::write_account_data(
-            data_account_basic_storage,
             BasicStorage {
                 mint_or_lock: is_mint_contract,
                 admin: *account_admin.key,
                 executors_group_length: 0,
             },
         )?;
-        DataAccountUtils::create_related_account(
+        DataAccountUtils::create_data_account(
             program_id,
+            system_program,
             account_payer,
             data_account_tokens_proposers,
-            system_program,
             Constants::TOKENS_PROPOSERS,
             b"",
             Constants::SIZE_TOKENS_PROPOSERS + Constants::SIZE_LENGTH,
-        )?;
-        DataAccountUtils::write_account_data(
-            data_account_tokens_proposers,
             TokensAndProposers {
                 tokens: SparseArray::default(),
                 decimals: SparseArray::default(),
@@ -546,17 +540,10 @@ impl Processor {
             },
         )?;
 
-        // Process init-executors
-        DataAccountUtils::create_related_account(
-            program_id,
-            account_payer,
-            data_account_executors_at_index,
-            system_program,
-            Constants::PREFIX_EXECUTORS,
-            &exe_index.to_le_bytes(),
-            Constants::SIZE_EXECUTORS_STORAGE + Constants::SIZE_LENGTH,
-        )?;
         Permissions::init_executors_internal(
+            program_id,
+            system_program,
+            account_payer,
             data_account_basic_storage,
             data_account_executors_at_index,
             account_admin.key,

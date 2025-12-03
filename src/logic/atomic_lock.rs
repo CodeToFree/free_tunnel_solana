@@ -60,20 +60,15 @@ impl AtomicLock {
         }
 
         // Write proposed-lock data
-        DataAccountUtils::create_related_account(
+        DataAccountUtils::create_data_account(
             program_id,
+            system_program,
             account_payer,
             data_account_proposed_lock,
-            system_program,
             Constants::PREFIX_LOCK,
             &req_id.data,
             size_of::<ProposedLock>() + Constants::SIZE_LENGTH,
-        )?;
-        DataAccountUtils::write_account_data(
-            data_account_proposed_lock,
-            ProposedLock {
-                inner: *account_proposer.key,
-            },
+            ProposedLock { inner: *account_proposer.key },
         )?;
 
         // Deposit token
@@ -229,17 +224,14 @@ impl AtomicLock {
         }
 
         // Write proposed-unlock data
-        DataAccountUtils::create_related_account(
+        DataAccountUtils::create_data_account(
             program_id,
+            system_program,
             account_payer,
             data_account_proposed_unlock,
-            system_program,
             Constants::PREFIX_UNLOCK,
             &req_id.data,
             size_of::<ProposedLock>() + Constants::SIZE_LENGTH,
-        )?;
-        DataAccountUtils::write_account_data(
-            data_account_proposed_unlock,
             ProposedLock { inner: *recipient },
         )?;
 
