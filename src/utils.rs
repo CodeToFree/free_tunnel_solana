@@ -184,57 +184,17 @@ impl SignatureUtils {
 }
 
 impl DataAccountUtils {
-    /// Creates a Program Derived Address (PDA) account with specified parameters
-    ///
-    /// # Arguments
-    /// * `program_id` - The program that will own the account
-    /// * `account_payer` - Account that will pay for the new account creation
-    /// * `target_account` - Account to be created as a PDA
-    /// * `prefix` - Seed prefix for PDA derivation
-    /// * `phrase` - Additional seed for PDA derivation
-    /// * `data_length` - Size of the account data in bytes
-    pub fn create_related_account<'a>(
-        program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
-        target_account: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
-        prefix: &[u8],
-        phrase: &[u8],
-        data_length: usize,
-    ) -> ProgramResult {
-        let (pda_pubkey, bump_seed) = Pubkey::find_program_address(&[prefix, phrase], program_id);
-        if pda_pubkey != *target_account.key {
-            Err(DataAccountError::PdaAccountMismatch.into())
-        } else if !target_account.is_writable {
-            Err(DataAccountError::PdaAccountNotWritable.into())
-        } else if !target_account.data_is_empty() {
-            Err(DataAccountError::PdaAccountAlreadyCreated.into())
-        } else {
-            let rent = Rent::get()?;
-            let required_lamports = rent.minimum_balance(data_length);
-            invoke_signed(
-                &create_account(
-                    account_payer.key,
-                    target_account.key,
-                    required_lamports,
-                    data_length as u64,
-                    program_id,
-                ),
-                &[
-                    account_payer.clone(),
-                    target_account.clone(),
-                    system_program.clone(),
-                ],
-                &[&[prefix.as_ref(), phrase.as_ref(), &[bump_seed]]],
-            )
-        }
+    pub fn is_empty_account(data_account: &AccountInfo) -> bool {
+        data_account.data_is_empty()
     }
 
-    pub fn check_account_ownership(program_id: &Pubkey, account: &AccountInfo) -> ProgramResult {
-        match account.owner == program_id {
-            true => Ok(()),
-            false => Err(DataAccountError::PdaAccountNotOwned.into()),
-        }
+    pub fn read_account_data<Data: BorshDeserialize>(
+        data_account: &AccountInfo,
+    ) -> Result<Data, ProgramError> {
+        let account_data = &data_account.data.borrow()[..];
+        let data_len = u32::from_le_bytes(account_data[..4].try_into().unwrap()) as usize;
+        Data::try_from_slice(&account_data[4..4 + data_len])
+            .map_err(|_| ProgramError::InvalidAccountData)
     }
 
     pub fn check_account_match(
@@ -262,6 +222,61 @@ impl DataAccountUtils {
         Ok(())
     }
 
+    pub fn check_account_ownership(program_id: &Pubkey, account: &AccountInfo) -> ProgramResult {
+        match account.owner == program_id {
+            true => Ok(()),
+            false => Err(DataAccountError::PdaAccountNotOwned.into()),
+        }
+    }
+
+    /// Creates a Program Derived Address (PDA) account with specified parameters
+    ///
+    /// # Arguments
+    /// * `program_id` - The program that will own the account
+    /// * `account_payer` - Account that will pay for the new account creation
+    /// * `data_account` - Account to be created as a PDA
+    /// * `prefix` - Seed prefix for PDA derivation
+    /// * `phrase` - Additional seed for PDA derivation
+    /// * `data_length` - Size of the account data in bytes
+    pub fn create_data_account<'a>(
+        program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
+        data_account: &AccountInfo<'a>,
+        prefix: &[u8],
+        phrase: &[u8],
+        data_length: usize,
+        content: Data,
+    ) -> ProgramResult {
+        let (pda_pubkey, bump_seed) = Pubkey::find_program_address(&[prefix, phrase], program_id);
+        if pda_pubkey != *data_account.key {
+            Err(DataAccountError::PdaAccountMismatch.into())
+        } else if !data_account.is_writable {
+            Err(DataAccountError::PdaAccountNotWritable.into())
+        } else if !data_account.data_is_empty() {
+            Err(DataAccountError::PdaAccountAlreadyCreated.into())
+        } else {
+            let rent = Rent::get()?;
+            let required_lamports = rent.minimum_balance(data_length);
+            invoke_signed(
+                &create_account(
+                    account_payer.key,
+                    data_account.key,
+                    required_lamports,
+                    data_length as u64,
+                    program_id,
+                ),
+                &[
+                    account_payer.clone(),
+                    data_account.clone(),
+                    system_program.clone(),
+                ],
+                &[&[prefix.as_ref(), phrase.as_ref(), &[bump_seed]]],
+            );
+            write_account_data(data_account, content)
+        }
+    }
+
     pub fn write_account_data<Data: BorshSerialize>(
         data_account: &AccountInfo,
         content: Data,
@@ -274,18 +289,5 @@ impl DataAccountUtils {
         account_data[..4].copy_from_slice(&(buffer.len() as u32).to_le_bytes());
         account_data[4..4 + buffer.len()].copy_from_slice(&buffer);
         Ok(())
-    }
-
-    pub fn read_account_data<Data: BorshDeserialize>(
-        data_account: &AccountInfo,
-    ) -> Result<Data, ProgramError> {
-        let account_data = &data_account.data.borrow()[..];
-        let data_len = u32::from_le_bytes(account_data[..4].try_into().unwrap()) as usize;
-        Data::try_from_slice(&account_data[4..4 + data_len])
-            .map_err(|_| ProgramError::InvalidAccountData)
-    }
-
-    pub fn is_empty_account(data_account: &AccountInfo) -> bool {
-        data_account.data_is_empty()
     }
 }

@@ -95,17 +95,14 @@ impl AtomicMint {
         }
 
         // Write proposed-lock data
-        DataAccountUtils::create_related_account(
+        DataAccountUtils::create_data_account(
             program_id,
+            system_program,
             account_payer,
             data_account_proposed_mint,
-            system_program,
             Constants::PREFIX_MINT,
             &req_id.data,
             size_of::<ProposedMint>() + Constants::SIZE_LENGTH,
-        )?;
-        DataAccountUtils::write_account_data(
-            data_account_proposed_mint,
             ProposedMint { inner: *recipient },
         )?;
 
@@ -241,20 +238,15 @@ impl AtomicMint {
         }
 
         // Write proposed-burn data
-        DataAccountUtils::create_related_account(
+        DataAccountUtils::create_data_account(
             program_id,
+            system_program,
             account_payer,
             data_account_proposed_burn,
-            system_program,
             Constants::PREFIX_BURN,
             &req_id.data,
             size_of::<ProposedBurn>() + Constants::SIZE_LENGTH,
-        )?;
-        DataAccountUtils::write_account_data(
-            data_account_proposed_burn,
-            ProposedBurn {
-                inner: *account_proposer.key,
-            },
+            ProposedBurn { inner: *account_proposer.key },
         )?;
 
         // Transfer assets to contract
