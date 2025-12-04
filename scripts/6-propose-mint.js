@@ -176,17 +176,15 @@ async function main() {
   const proposeMintInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
-      // 0. account_payer
-      { pubkey: proposer.publicKey, isSigner: true, isWritable: true },
-      // 1. account_proposer
+      // 0. account_proposer
       { pubkey: proposer.publicKey, isSigner: true, isWritable: false },
-      // 2. data_account_basic_storage
+      // 1. data_account_basic_storage
       { pubkey: basicStoragePda, isSigner: false, isWritable: false },
-      // 3. data_account_tokens_proposers
+      // 2. data_account_tokens_proposers
       { pubkey: tokensProposersPda, isSigner: false, isWritable: false },
-      // 4. data_account_proposed_mint
+      // 3. data_account_proposed_mint
       { pubkey: proposedMintPda, isSigner: false, isWritable: true },
-      // 5. system_program
+      // 4. system_program
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,

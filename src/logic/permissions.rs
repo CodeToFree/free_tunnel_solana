@@ -74,10 +74,9 @@ impl Permissions {
     pub(crate) fn init_executors_internal<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
-        account_payer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_executors_at_index: &AccountInfo<'a>,
-        account_admin: &AccountInfo,
+        account_admin: &AccountInfo<'a>,
         executors: &Vec<EthAddress>,
         threshold: u64,
         exe_index: u64,
@@ -85,6 +84,8 @@ impl Permissions {
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         Self::assert_only_admin(data_account_basic_storage, account_admin)?;
+
+        // Check conditions
         if threshold > executors.len() as u64 {
             Err(FreeTunnelError::NotMeetThreshold.into())
         } else if basic_storage.executors_group_length != 0 {
@@ -96,11 +97,11 @@ impl Permissions {
             SignatureUtils::check_executors_not_duplicated(executors)?;
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
 
-            // Process init-executors
+            // Write executors data
             DataAccountUtils::create_data_account(
                 program_id,
                 system_program,
-                account_payer,
+                account_admin,
                 data_account_executors_at_index,
                 Constants::PREFIX_EXECUTORS,
                 &exe_index.to_le_bytes(),

@@ -29,7 +29,6 @@ impl Processor {
                 threshold,
                 exe_index,
             } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
@@ -37,7 +36,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_initialize(
                     program_id,
-                    account_payer,
                     account_admin,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
@@ -138,7 +136,6 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeMint { req_id, recipient } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
@@ -146,7 +143,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_mint(
                     program_id,
-                    account_payer,
                     account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
@@ -157,7 +153,6 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeMintForBurn { req_id, recipient } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
@@ -165,7 +160,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_mint_for_burn(
                     program_id,
-                    account_payer,
                     account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
@@ -220,7 +214,6 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeBurn { req_id } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let system_account_token_program = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
@@ -231,7 +224,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_burn(
                     program_id,
-                    account_payer,
                     account_proposer,
                     system_account_token_program,
                     data_account_basic_storage,
@@ -244,7 +236,6 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeBurnForMint { req_id } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let system_account_token_program = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
@@ -255,7 +246,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_burn_for_mint(
                     program_id,
-                    account_payer,
                     account_proposer,
                     system_account_token_program,
                     data_account_basic_storage,
@@ -320,7 +310,6 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeLock { req_id } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let system_account_token_program = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
@@ -331,7 +320,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_lock(
                     program_id,
-                    account_payer,
                     account_proposer,
                     system_account_token_program,
                     data_account_basic_storage,
@@ -388,7 +376,6 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeUnlock { req_id, recipient } => {
-                let account_payer = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
@@ -396,7 +383,6 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_unlock(
                     program_id,
-                    account_payer,
                     account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
@@ -473,7 +459,6 @@ impl Processor {
 
     fn process_initialize<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_admin: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
@@ -508,7 +493,7 @@ impl Processor {
         DataAccountUtils::create_data_account(
             program_id,
             system_program,
-            account_payer,
+            account_admin,
             data_account_basic_storage,
             Constants::BASIC_STORAGE,
             b"",
@@ -522,7 +507,7 @@ impl Processor {
         DataAccountUtils::create_data_account(
             program_id,
             system_program,
-            account_payer,
+            account_admin,
             data_account_tokens_proposers,
             Constants::TOKENS_PROPOSERS,
             b"",
@@ -538,7 +523,6 @@ impl Processor {
         Permissions::init_executors_internal(
             program_id,
             system_program,
-            account_payer,
             data_account_basic_storage,
             data_account_executors_at_index,
             account_admin,
@@ -746,7 +730,6 @@ impl Processor {
 
     fn process_propose_mint<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
@@ -777,7 +760,7 @@ impl Processor {
         // Process
         AtomicMint::propose_mint_internal(
             program_id,
-            account_payer,
+            account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_mint,
             system_program,
@@ -788,7 +771,6 @@ impl Processor {
 
     fn process_propose_mint_for_burn<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
@@ -819,7 +801,7 @@ impl Processor {
         // Process
         AtomicMint::propose_mint_internal(
             program_id,
-            account_payer,
+            account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_mint,
             system_program,
@@ -913,7 +895,6 @@ impl Processor {
 
     fn process_propose_burn<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
@@ -943,7 +924,6 @@ impl Processor {
         AtomicMint::propose_burn_internal(
             program_id,
             system_account_token_program,
-            account_payer,
             data_account_tokens_proposers,
             data_account_proposed_burn,
             token_account_proposer,
@@ -956,7 +936,6 @@ impl Processor {
 
     fn process_propose_burn_for_mint<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
@@ -986,7 +965,6 @@ impl Processor {
         AtomicMint::propose_burn_internal(
             program_id,
             system_account_token_program,
-            account_payer,
             data_account_tokens_proposers,
             data_account_proposed_burn,
             token_account_proposer,
@@ -1094,7 +1072,6 @@ impl Processor {
 
     fn process_propose_lock<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
@@ -1118,12 +1095,12 @@ impl Processor {
         if !account_proposer.is_signer {
             return Err(FreeTunnelError::ProposerNotSigner.into());
         }
+        Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
 
         // Process
         AtomicLock::propose_lock_internal(
             program_id,
             system_account_token_program,
-            account_payer,
             data_account_tokens_proposers,
             data_account_proposed_lock,
             token_account_proposer,
@@ -1231,7 +1208,6 @@ impl Processor {
 
     fn process_propose_unlock<'a>(
         program_id: &Pubkey,
-        account_payer: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
@@ -1257,7 +1233,6 @@ impl Processor {
         // Process
         AtomicLock::propose_unlock_internal(
             program_id,
-            account_payer,
             data_account_tokens_proposers,
             data_account_proposed_unlock,
             account_proposer,

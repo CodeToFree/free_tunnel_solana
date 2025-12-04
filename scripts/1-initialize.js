@@ -144,7 +144,6 @@ async function main() {
     programId: PROGRAM_ID,
     keys: [
       { pubkey: admin.publicKey, isSigner: true, isWritable: true },
-      { pubkey: admin.publicKey, isSigner: true, isWritable: false },
       { pubkey: basicStoragePda, isSigner: false, isWritable: true },
       { pubkey: tokensProposersPda, isSigner: false, isWritable: true },
       { pubkey: executorsAtIndexPda, isSigner: false, isWritable: true },

@@ -14,7 +14,7 @@ solana-test-validator
 solana program deploy target/deploy/free_tunnel_solana.so
 
 # initialize the program
-node scripts/initialize.js
+node scripts/1-initialize.js
 
 # create token
 spl-token create-token
