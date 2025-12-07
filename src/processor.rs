@@ -1008,9 +1008,6 @@ impl Processor {
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
         // Check signers
-        if !account_proposer.is_signer {
-            return Err(FreeTunnelError::ProposerNotSigner.into());
-        }
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
 
         // Process
