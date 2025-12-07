@@ -6,7 +6,7 @@ use solana_program::{
 use crate::{
     constants::{Constants, EthAddress},
     error::FreeTunnelError,
-    state::{BasicStorage, ExecutorsInfo, TokensAndProposers},
+    state::{BasicStorage, ExecutorsInfo},
     utils::{DataAccountUtils, SignatureUtils},
 };
 
@@ -29,12 +29,12 @@ impl Permissions {
     }
 
     pub(crate) fn assert_only_proposer(
-        data_account_tokens_proposers: &AccountInfo,
+        data_account_basic_storage: &AccountInfo,
         account_proposer: &AccountInfo,
     ) -> ProgramResult {
-        let token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if !token_proposers.proposers.contains(account_proposer.key) {
+        let basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        if !basic_storage.proposers.contains(account_proposer.key) {
             Err(FreeTunnelError::NotProposer.into())
         } else if !account_proposer.is_signer {
             Err(FreeTunnelError::ProposerNotSigner.into())
@@ -44,30 +44,30 @@ impl Permissions {
     }
 
     pub(crate) fn add_proposer_internal(
-        data_account_tokens_proposers: &AccountInfo,
+        data_account_basic_storage: &AccountInfo,
         proposer: &Pubkey,
     ) -> ProgramResult {
-        let mut token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if token_proposers.proposers.contains(&proposer) {
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        if basic_storage.proposers.contains(&proposer) {
             Err(FreeTunnelError::AlreadyProposer.into())
         } else {
-            token_proposers.proposers.push(proposer.clone());
-            DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
+            basic_storage.proposers.push(proposer.clone());
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
         }
     }
 
     pub(crate) fn remove_proposer_internal(
-        data_account_tokens_proposers: &AccountInfo,
+        data_account_basic_storage: &AccountInfo,
         proposer: &Pubkey,
     ) -> ProgramResult {
-        let mut token_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        if !token_proposers.proposers.contains(proposer) {
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        if !basic_storage.proposers.contains(proposer) {
             Err(FreeTunnelError::NotExistingProposer.into())
         } else {
-            token_proposers.proposers.retain(|p| p != proposer);
-            DataAccountUtils::write_account_data(data_account_tokens_proposers, token_proposers)
+            basic_storage.proposers.retain(|p| p != proposer);
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
         }
     }
 

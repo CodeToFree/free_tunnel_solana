@@ -88,11 +88,6 @@ async function main() {
     PROGRAM_ID
   );
 
-  const [tokensProposersPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("tokens-proposers")],
-    PROGRAM_ID
-  );
-
   const exeIndexBuffer = Buffer.alloc(8);
   exeIndexBuffer.writeBigUInt64LE(exeIndex);
   const [executorsAtIndexPda] = PublicKey.findProgramAddressSync(
@@ -107,13 +102,11 @@ async function main() {
 
   const pdas = {
     basicStorage: basicStoragePda.toBase58(),
-    tokensProposers: tokensProposersPda.toBase58(),
     executorsAtIndex0: executorsAtIndexPda.toBase58(),
     contractSigner: contractSignerPda.toBase58(),
   };
 
   console.log(`PDA ${BLUE}[Basic Storage]${RESET}: ${pdas.basicStorage}`);
-  console.log(`PDA ${BLUE}[Tokens/Proposers]${RESET}: ${pdas.tokensProposers}`);
   console.log(`PDA ${BLUE}[Executors (Index 0)]${RESET}: ${pdas.executorsAtIndex0}`);
   console.log(`PDA ${BLUE}[Contract Signer]${RESET}: ${pdas.contractSigner}`);
 
@@ -146,7 +139,6 @@ async function main() {
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: admin.publicKey, isSigner: true, isWritable: true },
       { pubkey: basicStoragePda, isSigner: false, isWritable: true },
-      { pubkey: tokensProposersPda, isSigner: false, isWritable: true },
       { pubkey: executorsAtIndexPda, isSigner: false, isWritable: true },
     ],
     data: instructionBuffer,

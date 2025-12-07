@@ -62,13 +62,7 @@ async function main() {
     PROGRAM_ID
   );
 
-  const [tokensProposersPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("tokens-proposers")],
-    PROGRAM_ID
-  );
-
   console.log(`PDA ${BLUE}[Basic Storage]${RESET}: ${basicStoragePda.toBase58()}`);
-  console.log(`PDA ${BLUE}[Tokens/Proposers]${RESET}: ${tokensProposersPda.toBase58()}`);
 
   // 3. Serialize instruction data
   const instructionDataPayload = {
@@ -94,9 +88,7 @@ async function main() {
       // 0. account_admin
       { pubkey: admin.publicKey, isSigner: true, isWritable: false },
       // 1. data_account_basic_storage
-      { pubkey: basicStoragePda, isSigner: false, isWritable: false },
-      // 2. data_account_tokens_proposers
-      { pubkey: tokensProposersPda, isSigner: false, isWritable: true },
+      { pubkey: basicStoragePda, isSigner: false, isWritable: true },
     ],
     data: instructionBuffer,
   });

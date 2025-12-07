@@ -141,17 +141,12 @@ async function main() {
     [Buffer.from("basic-storage")],
     PROGRAM_ID
   );
-  const [tokensProposersPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("tokens-proposers")],
-    PROGRAM_ID
-  );
   const [proposedMintPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("mint"), reqId],
     PROGRAM_ID
   );
 
   console.log(`PDA ${BLUE}[Basic Storage]${RESET}: ${basicStoragePda.toBase58()}`);
-  console.log(`PDA ${BLUE}[Tokens/Proposers]${RESET}: ${tokensProposersPda.toBase58()}`);
   console.log(`PDA ${BLUE}[Proposed Mint]${RESET}: ${proposedMintPda.toBase58()}`);
 
   // 3. Serialize instruction data
@@ -182,9 +177,7 @@ async function main() {
       { pubkey: proposer.publicKey, isSigner: true, isWritable: false },
       // 2. data_account_basic_storage
       { pubkey: basicStoragePda, isSigner: false, isWritable: false },
-      // 3. data_account_tokens_proposers
-      { pubkey: tokensProposersPda, isSigner: false, isWritable: false },
-      // 4. data_account_proposed_mint
+      // 3. data_account_proposed_mint
       { pubkey: proposedMintPda, isSigner: false, isWritable: true },
     ],
     data: instructionBuffer,

@@ -12,16 +12,29 @@ const RPC_URL = "http://127.0.0.1:8899";
 // A helper schema for a Pubkey (32-byte array)
 const PUBKEY_SCHEMA = { array: { type: 'u8', len: 32 } };
 
+// Schema for SparseArray items
+const SPARSE_ARRAY_ITEM_PUBKEY = { struct: { id: 'u8', value: PUBKEY_SCHEMA } };
+const SPARSE_ARRAY_ITEM_U8 = { struct: { id: 'u8', value: 'u8' } };
+const SPARSE_ARRAY_ITEM_U64 = { struct: { id: 'u8', value: 'u64' } };
+
 // This schema must EXACTLY match your Rust structs in `state.rs`
-const TOKENS_AND_PROPOSERS_SCHEMA = {
+// BasicStorage struct: mint_or_lock: bool, admin: Pubkey, executors_group_length: u64,
+// tokens: SparseArray<Pubkey>, decimals: SparseArray<u8>, locked_balance: SparseArray<u64>, proposers: Vec<Pubkey>
+const BASIC_STORAGE_SCHEMA = {
   struct: {
-    // For `tokens: SparseArray<Pubkey>`
-    tokens: { array: { type: { struct: { id: 'u8', value: PUBKEY_SCHEMA } } } },
-    // For `decimals: SparseArray<u8>`
-    decimals: { array: { type: { struct: { id: 'u8', value: 'u8' } } } },
-    // For `locked_balance: SparseArray<u64>`
-    locked_balance: { array: { type: { struct: { id: 'u8', value: 'u64' } } } },
-    // For `proposers: Vec<Pubkey>`
+    // mint_or_lock: bool
+    mint_or_lock: 'u8', // Borsh serializes bool as u8
+    // admin: Pubkey
+    admin: PUBKEY_SCHEMA,
+    // executors_group_length: u64
+    executors_group_length: 'u64',
+    // tokens: SparseArray<Pubkey>
+    tokens: { array: { type: SPARSE_ARRAY_ITEM_PUBKEY } },
+    // decimals: SparseArray<u8>
+    decimals: { array: { type: SPARSE_ARRAY_ITEM_U8 } },
+    // locked_balance: SparseArray<u64>
+    locked_balance: { array: { type: SPARSE_ARRAY_ITEM_U64 } },
+    // proposers: Vec<Pubkey>
     proposers: { array: { type: PUBKEY_SCHEMA } }
   }
 };
@@ -36,18 +49,18 @@ async function main() {
   console.log("\nConnecting to local validator...");
   const connection = new Connection(RPC_URL, "confirmed");
 
-  console.log("Calculating PDA address for Tokens/Proposers account...");
-  const [tokensProposersPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("tokens-proposers")],
+  console.log("Calculating PDA address for Basic Storage account...");
+  const [basicStoragePda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("basic-storage")],
     PROGRAM_ID
   );
-  console.log(`Querying account: ${BLUE}${tokensProposersPda.toBase58()}${RESET}`);
+  console.log(`Querying account: ${BLUE}${basicStoragePda.toBase58()}${RESET}`);
 
   // 1. Fetch the account info
-  const accountInfo = await connection.getAccountInfo(tokensProposersPda);
+  const accountInfo = await connection.getAccountInfo(basicStoragePda);
 
   if (!accountInfo) {
-    console.error("Error: Tokens/Proposers account not found. Has it been initialized?");
+    console.error("Error: Basic Storage account not found. Has it been initialized?");
     return;
   }
 
@@ -59,12 +72,18 @@ async function main() {
   const dataBuffer = accountInfo.data.subarray(4, 4 + dataLength);
 
   const decodedData = borsh.deserialize(
-    TOKENS_AND_PROPOSERS_SCHEMA,
+    BASIC_STORAGE_SCHEMA,
     dataBuffer
   );
 
-  console.log(`${GREEN}--- Decoded TokensAndProposers State ---${RESET}`);
-  console.log(decodedData);
+  console.log(`${GREEN}--- Decoded BasicStorage State ---${RESET}`);
+  console.log(`Contract Type: ${decodedData.mint_or_lock ? 'Mint' : 'Lock'}`);
+  console.log(`Admin: ${new PublicKey(decodedData.admin).toBase58()}`);
+  console.log(`Executors Group Length: ${decodedData.executors_group_length}`);
+  console.log(`Tokens:`, decodedData.tokens);
+  console.log(`Decimals:`, decodedData.decimals);
+  console.log(`Locked Balance:`, decodedData.locked_balance);
+  console.log(`Proposers:`, decodedData.proposers.map(p => new PublicKey(p).toBase58()));
 
   // 3. Verify the specific token at index 56
   console.log(`\n${YELLOW}--- Verifying Token at Index 56 ---${RESET}`);

@@ -10,10 +10,6 @@ pub struct BasicStorage {
     pub mint_or_lock: bool, // true for mint, false for lock
     pub admin: Pubkey,
     pub executors_group_length: u64,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct TokensAndProposers {
     pub tokens: SparseArray<Pubkey>, // support up to 10 more tokens, avoid stack overflow error
     pub decimals: SparseArray<u8>, // decimals of each token
     pub locked_balance: SparseArray<u64>, // locked balance of each token

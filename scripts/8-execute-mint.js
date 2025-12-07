@@ -151,17 +151,15 @@ async function main() {
       { pubkey: recipientTokenAccount, isSigner: false, isWritable: true },
       // 3. data_account_basic_storage
       { pubkey: new PublicKey(programPdas.basicStorage), isSigner: false, isWritable: false },
-      // 4. data_account_tokens_proposers
-      { pubkey: new PublicKey(programPdas.tokensProposers), isSigner: false, isWritable: true }, // Writable to update amount
-      // 5. data_account_proposed_mint
+      // 4. data_account_proposed_mint
       { pubkey: proposedMintPda, isSigner: false, isWritable: true },
-      // 6. data_account_current_executors
+      // 5. data_account_current_executors
       { pubkey: currentExecutorsPda, isSigner: false, isWritable: false },
-      // 7. data_account_next_executors
+      // 6. data_account_next_executors
       { pubkey: nextExecutorsPda, isSigner: false, isWritable: false },
-      // 8. account_token_mint
+      // 7. account_token_mint
       { pubkey: tokenMint, isSigner: false, isWritable: true },
-      // 9. account_multisig_owner
+      // 8. account_multisig_owner
       { pubkey: multisigAddress, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,

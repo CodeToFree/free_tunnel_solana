@@ -10,9 +10,8 @@ pub enum FreeTunnelInstruction {
     /// [0]        
     /// 0. system_program: system program account, `11111111111111111111111111111111`
     /// 1. account_admin: the admin account, should be signer and payer
-    /// 2. data_account_basic_storage: data account for storing basic storage
-    /// 3. data_account_tokens_proposers: data account for storing tokens and proposers
-    /// 4. data_account_executors_at_index: data account for storing executors at index
+    /// 2. data_account_basic_storage: data account for storing basic storage (includes tokens, decimals, locked_balance, and proposers)
+    /// 3. data_account_executors_at_index: data account for storing executors at index
     Initialize {
         is_mint_contract: bool,
         executors: Vec<EthAddress>,
@@ -28,13 +27,11 @@ pub enum FreeTunnelInstruction {
     /// [2]
     /// 0. account_admin
     /// 1. data_account_basic_storage
-    /// 2. data_account_tokens_proposers
     AddProposer { new_proposer: Pubkey },
 
     /// [3]
     /// 0. account_admin
     /// 1. data_account_basic_storage
-    /// 2. data_account_tokens_proposers
     RemoveProposer { proposer: Pubkey },
 
     /// [4]
@@ -53,7 +50,6 @@ pub enum FreeTunnelInstruction {
     /// [5]
     /// 0. account_admin
     /// 1. data_account_basic_storage
-    /// 2. data_account_tokens_proposers
     AddToken {
         token_index: u8,
         token_pubkey: Pubkey,
@@ -63,23 +59,20 @@ pub enum FreeTunnelInstruction {
     /// [6]
     /// 0. account_admin
     /// 1. data_account_basic_storage
-    /// 2. data_account_tokens_proposers
     RemoveToken { token_index: u8 },
 
     /// [7]
     /// 0. system_program
     /// 1. account_proposer: the proposer account, should be signer and payer
     /// 2. data_account_basic_storage
-    /// 3. data_account_tokens_proposers
-    /// 4. data_account_proposed_mint: data account for storing `ProposedMint` (recipient)
+    /// 3. data_account_proposed_mint: data account for storing `ProposedMint` (recipient)
     ProposeMint { req_id: ReqId, recipient: Pubkey },
 
     /// [8]
     /// 0. system_program
     /// 1. account_proposer: the proposer account, should be signer and payer
     /// 2. data_account_basic_storage
-    /// 3. data_account_tokens_proposers
-    /// 4. data_account_proposed_mint
+    /// 3. data_account_proposed_mint
     ProposeMintForBurn { req_id: ReqId, recipient: Pubkey },
 
     /// [9]
@@ -87,12 +80,11 @@ pub enum FreeTunnelInstruction {
     /// 1. account_contract_signer: contract signer that can sign for the token transfer
     /// 2. token_account_recipient: token account for the recipient, should be different for each token
     /// 3. data_account_basic_storage
-    /// 4. data_account_tokens_proposers
-    /// 5. data_account_proposed_mint
-    /// 6. data_account_current_executors
-    /// 7. data_account_next_executors
-    /// 8. account_token_mint: token mint account (token contract address)
-    /// 9. account_multisig_owner: multisig owner account
+    /// 4. data_account_proposed_mint
+    /// 5. data_account_current_executors
+    /// 6. data_account_next_executors
+    /// 7. account_token_mint: token mint account (token contract address)
+    /// 8. account_multisig_owner: multisig owner account
     ExecuteMint {
         req_id: ReqId,
         signatures: Vec<[u8; 64]>,
@@ -112,8 +104,7 @@ pub enum FreeTunnelInstruction {
     /// 3. token_account_contract: token account for this contract, should be different for each token
     /// 4. token_account_proposer: token account for the proposer, should be different for each token
     /// 5. data_account_basic_storage
-    /// 6. data_account_tokens_proposers
-    /// 7. data_account_proposed_burn: data account for storing `ProposedBurn` (recipient)
+    /// 6. data_account_proposed_burn: data account for storing `ProposedBurn` (recipient)
     ProposeBurn { req_id: ReqId },
 
     /// [12]
@@ -123,8 +114,7 @@ pub enum FreeTunnelInstruction {
     /// 3. token_account_contract
     /// 4. token_account_proposer
     /// 5. data_account_basic_storage
-    /// 6. data_account_tokens_proposers
-    /// 7. data_account_proposed_burn
+    /// 6. data_account_proposed_burn
     ProposeBurnForMint { req_id: ReqId },
 
     /// [13]
@@ -132,11 +122,10 @@ pub enum FreeTunnelInstruction {
     /// 1. account_contract_signer: contract signer that can sign for the token transfer
     /// 2. token_account_contract
     /// 3. data_account_basic_storage
-    /// 4. data_account_tokens_proposers
-    /// 5. data_account_proposed_burn
-    /// 6. data_account_current_executors
-    /// 7. data_account_next_executors
-    /// 8. account_token_mint
+    /// 4. data_account_proposed_burn
+    /// 5. data_account_current_executors
+    /// 6. data_account_next_executors
+    /// 7. account_token_mint
     ExecuteBurn {
         req_id: ReqId,
         signatures: Vec<[u8; 64]>,
@@ -150,8 +139,7 @@ pub enum FreeTunnelInstruction {
     /// 2. token_account_contract
     /// 3. token_account_proposer
     /// 4. data_account_basic_storage
-    /// 5. data_account_tokens_proposers
-    /// 6. data_account_proposed_burn
+    /// 5. data_account_proposed_burn
     CancelBurn { req_id: ReqId },
 
     /// [15]
@@ -161,16 +149,14 @@ pub enum FreeTunnelInstruction {
     /// 3. token_account_contract
     /// 4. token_account_proposer
     /// 5. data_account_basic_storage
-    /// 6. data_account_tokens_proposers
-    /// 7. data_account_proposed_lock
+    /// 6. data_account_proposed_lock
     ProposeLock { req_id: ReqId },
 
     /// [16]
     /// 0. data_account_basic_storage
-    /// 1. data_account_tokens_proposers
-    /// 2. data_account_proposed_lock
-    /// 3. data_account_current_executors
-    /// 4. data_account_next_executors
+    /// 1. data_account_proposed_lock
+    /// 2. data_account_current_executors
+    /// 3. data_account_next_executors
     ExecuteLock {
         req_id: ReqId,
         signatures: Vec<[u8; 64]>,
@@ -184,16 +170,14 @@ pub enum FreeTunnelInstruction {
     /// 2. token_account_contract
     /// 3. token_account_proposer
     /// 4. data_account_basic_storage
-    /// 5. data_account_tokens_proposers
-    /// 6. data_account_proposed_lock
+    /// 5. data_account_proposed_lock
     CancelLock { req_id: ReqId },
 
     /// [18]
     /// 0. system_program
     /// 1. account_proposer: the proposer account, should be signer and payer
     /// 2. data_account_basic_storage
-    /// 3. data_account_tokens_proposers
-    /// 4. data_account_proposed_unlock
+    /// 3. data_account_proposed_unlock
     ProposeUnlock { req_id: ReqId, recipient: Pubkey },
 
     /// [19]
@@ -202,10 +186,9 @@ pub enum FreeTunnelInstruction {
     /// 2. token_account_contract
     /// 3. token_account_recipient
     /// 4. data_account_basic_storage
-    /// 5. data_account_tokens_proposers
-    /// 6. data_account_proposed_unlock
-    /// 7. data_account_current_executors
-    /// 8. data_account_next_executors
+    /// 5. data_account_proposed_unlock
+    /// 6. data_account_current_executors
+    /// 7. data_account_next_executors
     ExecuteUnlock {
         req_id: ReqId,
         signatures: Vec<[u8; 64]>,
@@ -215,8 +198,7 @@ pub enum FreeTunnelInstruction {
 
     /// [20]
     /// 0. data_account_basic_storage
-    /// 1. data_account_tokens_proposers
-    /// 2. data_account_proposed_unlock
+    /// 1. data_account_proposed_unlock
     CancelUnlock { req_id: ReqId },
 }
 

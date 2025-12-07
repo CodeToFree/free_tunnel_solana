@@ -12,7 +12,7 @@ use crate::{
     constants::{Constants, EthAddress},
     logic::{permissions::Permissions, req_helpers::ReqId},
     error::FreeTunnelError,
-    state::{ProposedLock, TokensAndProposers},
+    state::{ProposedLock, BasicStorage},
     utils::{DataAccountUtils, SignatureUtils},
 };
 
@@ -44,7 +44,7 @@ impl AtomicLock {
         account_proposer: &AccountInfo<'a>, // signer
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
@@ -71,9 +71,9 @@ impl AtomicLock {
         )?;
 
         // Deposit token
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_proposer, &expected_token_pubkey)?;
         invoke_signed(
             &transfer(
@@ -96,7 +96,6 @@ impl AtomicLock {
     pub(crate) fn execute_lock_internal<'a>(
         _program_id: &Pubkey,
         data_account_basic_storage: &AccountInfo,
-        data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
@@ -133,12 +132,12 @@ impl AtomicLock {
         )?;
 
         // Update locked-balance data
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
-        let token_index = req_id.checked_token_index(data_account_tokens_proposers)?;
-        let mut token_and_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        token_and_proposers.locked_balance[token_index] += amount;
-        DataAccountUtils::write_account_data(data_account_tokens_proposers, token_and_proposers)
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
+        let token_index = req_id.checked_token_index(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        basic_storage.locked_balance[token_index] += amount;
+        DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
     }
 
     pub(crate) fn cancel_lock_internal<'a>(
@@ -147,7 +146,7 @@ impl AtomicLock {
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
@@ -171,9 +170,9 @@ impl AtomicLock {
         )?;
 
         // Refund token
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_contract, &expected_token_pubkey)?;
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
@@ -202,13 +201,13 @@ impl AtomicLock {
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>, // signer
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check conditions
-        Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
+        Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
         req_id.assert_from_chain_only()?;
         req_id.checked_created_time()?;
         if req_id.action() & 0x0f != 2 {
@@ -234,12 +233,12 @@ impl AtomicLock {
         )?;
 
         // Update locked-balance data
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
-        let token_index = req_id.checked_token_index(data_account_tokens_proposers)?;
-        let mut token_and_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        token_and_proposers.locked_balance[token_index] -= amount;
-        DataAccountUtils::write_account_data(data_account_tokens_proposers, token_and_proposers)
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
+        let token_index = req_id.checked_token_index(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        basic_storage.locked_balance[token_index] -= amount;
+        DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
     }
 
     pub(crate) fn execute_unlock_internal<'a>(
@@ -249,7 +248,6 @@ impl AtomicLock {
         token_account_contract: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
-        data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
@@ -287,9 +285,9 @@ impl AtomicLock {
         )?;
 
         // Unlock token to recipient
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_contract, &expected_token_pubkey)?;
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
@@ -316,7 +314,7 @@ impl AtomicLock {
 
     pub(crate) fn cancel_unlock_internal<'a>(
         _program_id: &Pubkey,
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
@@ -341,11 +339,11 @@ impl AtomicLock {
         )?;
 
         // Update locked-balance data
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
-        let token_index = req_id.checked_token_index(data_account_tokens_proposers)?;
-        let mut token_and_proposers: TokensAndProposers =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
-        token_and_proposers.locked_balance[token_index] += amount;
-        DataAccountUtils::write_account_data(data_account_tokens_proposers, token_and_proposers)
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
+        let token_index = req_id.checked_token_index(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        basic_storage.locked_balance[token_index] += amount;
+        DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
     }
 }

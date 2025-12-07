@@ -5,8 +5,9 @@ use solana_program::{
 };
 
 use crate::error::FreeTunnelError;
+use crate::state::BasicStorage;
 use crate::utils::DataAccountUtils;
-use crate::{constants::Constants, state::TokensAndProposers};
+use crate::constants::Constants;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct ReqId {
@@ -54,10 +55,10 @@ impl ReqId {
 
     pub fn checked_token_index(
         &self,
-        data_account_tokens_proposers: &AccountInfo,
+        data_account_basic_storage: &AccountInfo,
     ) -> Result<u8, ProgramError> {
-        let TokensAndProposers { tokens, .. } =
-            DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
+        let BasicStorage { tokens, .. } =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if tokens[self.token_index()] == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
@@ -67,11 +68,11 @@ impl ReqId {
 
     pub fn checked_token_index_pubkey_decimal(
         &self,
-        data_account_tokens_proposers: &AccountInfo,
+        data_account_basic_storage: &AccountInfo,
     ) -> Result<(u8, Pubkey, u8), ProgramError> {
-        let TokensAndProposers {
+        let BasicStorage {
             tokens, decimals, ..
-        } = DataAccountUtils::read_account_data(data_account_tokens_proposers)?;
+        } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         let token_index = self.token_index();
         let token_pubkey = tokens[token_index];
         if token_pubkey == Pubkey::default() {
@@ -87,14 +88,14 @@ impl ReqId {
 
     pub fn checked_amount(
         &self,
-        data_account_tokens_proposers: &AccountInfo,
+        data_account_basic_storage: &AccountInfo,
     ) -> Result<u64, ProgramError> {
         let amount = self.raw_amount();
         if amount == 0 {
             Err(FreeTunnelError::AmountCannotBeZero.into())
         } else {
             let (_, _, decimal) =
-                self.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+                self.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
             if decimal > 6 {
                 Ok(amount * 10u64.pow(decimal as u32 - 6))
             } else if decimal < 6 {

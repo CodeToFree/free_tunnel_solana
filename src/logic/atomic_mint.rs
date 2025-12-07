@@ -38,27 +38,27 @@ impl AtomicMint {
     }
 
     pub(crate) fn check_propose_mint<'a>(
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         account_proposer: &AccountInfo,
         req_id: &ReqId,
     ) -> ProgramResult {
         if req_id.action() & 0x0f != 1 {
             Err(FreeTunnelError::NotLockMint.into())
         } else {
-            Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
+            Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
             req_id.assert_to_chain_only()
         }
     }
 
     pub(crate) fn check_propose_mint_from_burn<'a>(
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         account_proposer: &AccountInfo,
         req_id: &ReqId,
     ) -> ProgramResult {
         if req_id.action() & 0x0f != 3 {
             Err(FreeTunnelError::NotBurnMint.into())
         } else {
-            Permissions::assert_only_proposer(data_account_tokens_proposers, account_proposer)?;
+            Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
             req_id.assert_to_chain_only()
         }
     }
@@ -83,7 +83,7 @@ impl AtomicMint {
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
@@ -107,8 +107,8 @@ impl AtomicMint {
         )?;
 
         // Check amount & token index
-        req_id.checked_amount(data_account_tokens_proposers)?;
-        req_id.checked_token_index(data_account_tokens_proposers)?;
+        req_id.checked_amount(data_account_basic_storage)?;
+        req_id.checked_token_index(data_account_basic_storage)?;
         Ok(())
     }
 
@@ -118,7 +118,6 @@ impl AtomicMint {
         account_contract_signer: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
-        data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
@@ -157,9 +156,9 @@ impl AtomicMint {
         )?;
 
         // Check token match
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_recipient, &expected_token_pubkey)?;
         if expected_token_pubkey != *account_token_mint.key {
             return Err(FreeTunnelError::TokenMismatch.into());
@@ -223,7 +222,7 @@ impl AtomicMint {
         account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
@@ -249,9 +248,9 @@ impl AtomicMint {
         )?;
 
         // Transfer assets to contract
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_proposer, &expected_token_pubkey)?;
         invoke_signed(
             &transfer(
@@ -277,7 +276,6 @@ impl AtomicMint {
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
-        data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
@@ -315,9 +313,9 @@ impl AtomicMint {
         )?;
 
         // Burn token from contract
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_contract, &expected_token_pubkey)?;
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
@@ -348,7 +346,7 @@ impl AtomicMint {
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
-        data_account_tokens_proposers: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
@@ -372,9 +370,9 @@ impl AtomicMint {
         )?;
 
         // Update locked-balance data
-        let amount = req_id.checked_amount(data_account_tokens_proposers)?;
+        let amount = req_id.checked_amount(data_account_basic_storage)?;
         let (_, expected_token_pubkey, _) =
-            req_id.checked_token_index_pubkey_decimal(data_account_tokens_proposers)?;
+            req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Self::check_token_account_match_index(token_account_contract, &expected_token_pubkey)?;
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);

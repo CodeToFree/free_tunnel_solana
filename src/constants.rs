@@ -21,7 +21,6 @@ impl Constants {
 
     // Data account storage location
     pub const BASIC_STORAGE: &'static [u8] = b"basic-storage";
-    pub const TOKENS_PROPOSERS: &'static [u8] = b"tokens-proposers";
     pub const PREFIX_EXECUTORS: &'static [u8] = b"executors";
     pub const PREFIX_MINT: &'static [u8] = b"mint";
     pub const PREFIX_BURN: &'static [u8] = b"burn";
@@ -30,8 +29,7 @@ impl Constants {
 
     // Data account size
     pub const SIZE_LENGTH: usize = 4; // actual length for the data account (not capacity)
-    pub const SIZE_BASIC_STORAGE: usize = 1 + 32 + 8; // `mint_or_lock`, `admin` and `executors_group_length`
-    pub const SIZE_TOKENS_PROPOSERS: usize = 32 * (32 + 1 + 8 + 32); // `tokens` (and `decimals`) and `proposers`, up to 32 tokens and 32 proposers
+    pub const SIZE_BASIC_STORAGE: usize = 1 + 32 + 8 +  32 * (32 + 1 + 8 + 32); // `mint_or_lock`, `admin` and `executors_group_length`, `tokens` (and `decimals`) and `proposers`, up to 32 tokens and 32 proposers
     pub const SIZE_EXECUTORS_STORAGE: usize = 8 + 8 + 8 + 20 * 64; // `index`, `threshold`, `active_since` and `executors`, up to 64 executors
     pub const SIZE_ADDRESS_STORAGE: usize = 32;
 }
