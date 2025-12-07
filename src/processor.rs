@@ -29,18 +29,18 @@ impl Processor {
                 threshold,
                 exe_index,
             } => {
+                let system_program = next_account_info(accounts_iter)?;
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_executors_at_index = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_initialize(
                     program_id,
+                    system_program,
                     account_admin,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_executors_at_index,
-                    system_program,
                     is_mint_contract,
                     &executors,
                     threshold,
@@ -136,35 +136,35 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeMint { req_id, recipient } => {
+                let system_program = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_mint(
                     program_id,
+                    system_program,
                     account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_mint,
-                    system_program,
                     &req_id,
                     &recipient,
                 )
             }
             FreeTunnelInstruction::ProposeMintForBurn { req_id, recipient } => {
+                let system_program = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_mint_for_burn(
                     program_id,
+                    system_program,
                     account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_mint,
-                    system_program,
                     &req_id,
                     &recipient,
                 )
@@ -176,27 +176,27 @@ impl Processor {
                 exe_index,
             } => {
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                let token_account_recipient = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
                 let data_account_current_executors = next_account_info(accounts_iter)?;
                 let data_account_next_executors = next_account_info(accounts_iter)?;
-                let token_account_recipient = next_account_info(accounts_iter)?;
                 let account_token_mint = next_account_info(accounts_iter)?;
                 let account_multisig_owner = next_account_info(accounts_iter)?;
-                let account_contract_signer = next_account_info(accounts_iter)?;
                 Self::process_execute_mint(
                     program_id,
                     system_account_token_program,
+                    account_contract_signer,
+                    token_account_recipient,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_mint,
                     data_account_current_executors,
                     data_account_next_executors,
-                    token_account_recipient,
                     account_token_mint,
                     account_multisig_owner,
-                    account_contract_signer,
                     &req_id,
                     &signatures,
                     &executors,
@@ -214,46 +214,46 @@ impl Processor {
                 )
             }
             FreeTunnelInstruction::ProposeBurn { req_id } => {
-                let account_proposer = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
-                let token_account_proposer = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_burn(
                     program_id,
-                    account_proposer,
+                    system_program,
                     system_account_token_program,
+                    account_proposer,
+                    token_account_contract,
+                    token_account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_burn,
-                    token_account_proposer,
-                    token_account_contract,
-                    system_program,
                     &req_id,
                 )
             }
             FreeTunnelInstruction::ProposeBurnForMint { req_id } => {
-                let account_proposer = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
-                let token_account_proposer = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_burn_for_mint(
                     program_id,
-                    account_proposer,
+                    system_program,
                     system_account_token_program,
+                    account_proposer,
+                    token_account_contract,
+                    token_account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_burn,
-                    token_account_proposer,
-                    token_account_contract,
-                    system_program,
                     &req_id,
                 )
             }
@@ -264,24 +264,24 @@ impl Processor {
                 exe_index,
             } => {
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 let data_account_current_executors = next_account_info(accounts_iter)?;
                 let data_account_next_executors = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let account_contract_signer = next_account_info(accounts_iter)?;
                 let account_token_mint = next_account_info(accounts_iter)?;
                 Self::process_execute_burn(
                     program_id,
                     system_account_token_program,
+                    account_contract_signer,
+                    token_account_contract,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_burn,
                     data_account_current_executors,
                     data_account_next_executors,
-                    token_account_contract,
-                    account_contract_signer,
                     account_token_mint,
                     &req_id,
                     &signatures,
@@ -291,43 +291,43 @@ impl Processor {
             }
             FreeTunnelInstruction::CancelBurn { req_id } => {
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
-                let token_account_proposer = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let account_contract_signer = next_account_info(accounts_iter)?;
                 Self::process_cancel_burn(
                     program_id,
                     system_account_token_program,
+                    account_contract_signer,
+                    token_account_contract,
+                    token_account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_burn,
-                    token_account_proposer,
-                    token_account_contract,
-                    account_contract_signer,
                     &req_id,
                 )
             }
             FreeTunnelInstruction::ProposeLock { req_id } => {
-                let account_proposer = next_account_info(accounts_iter)?;
+                let system_program = next_account_info(accounts_iter)?;
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_proposer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
-                let token_account_proposer = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_lock(
                     program_id,
-                    account_proposer,
+                    system_program,
                     system_account_token_program,
+                    account_proposer,
+                    token_account_contract,
+                    token_account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_lock,
-                    token_account_proposer,
-                    token_account_contract,
-                    system_program,
                     &req_id,
                 )
             }
@@ -357,37 +357,37 @@ impl Processor {
             }
             FreeTunnelInstruction::CancelLock { req_id } => {
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
-                let token_account_proposer = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let account_contract_signer = next_account_info(accounts_iter)?;
                 Self::process_cancel_lock(
                     program_id,
                     system_account_token_program,
+                    account_contract_signer,
+                    token_account_contract,
+                    token_account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_lock,
-                    token_account_proposer,
-                    token_account_contract,
-                    account_contract_signer,
                     &req_id,
                 )
             }
             FreeTunnelInstruction::ProposeUnlock { req_id, recipient } => {
+                let system_program = next_account_info(accounts_iter)?;
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
-                let system_program = next_account_info(accounts_iter)?;
                 Self::process_propose_unlock(
                     program_id,
+                    system_program,
                     account_proposer,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_unlock,
-                    system_program,
                     &req_id,
                     &recipient,
                 )
@@ -399,25 +399,25 @@ impl Processor {
                 exe_index,
             } => {
                 let system_account_token_program = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let token_account_recipient = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_tokens_proposers = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
                 let data_account_current_executors = next_account_info(accounts_iter)?;
                 let data_account_next_executors = next_account_info(accounts_iter)?;
-                let token_account_recipient = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let account_contract_signer = next_account_info(accounts_iter)?;
                 Self::process_execute_unlock(
                     program_id,
                     system_account_token_program,
+                    account_contract_signer,
+                    token_account_contract,
+                    token_account_recipient,
                     data_account_basic_storage,
                     data_account_tokens_proposers,
                     data_account_proposed_unlock,
                     data_account_current_executors,
                     data_account_next_executors,
-                    token_account_recipient,
-                    token_account_contract,
-                    account_contract_signer,
                     &req_id,
                     &signatures,
                     &executors,
@@ -459,11 +459,11 @@ impl Processor {
 
     fn process_initialize<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         account_admin: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_executors_at_index: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         is_mint_contract: bool,
         executors: &Vec<EthAddress>,
         threshold: u64,
@@ -730,11 +730,11 @@ impl Processor {
 
     fn process_propose_mint<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -771,11 +771,11 @@ impl Processor {
 
     fn process_propose_mint_for_burn<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -813,15 +813,15 @@ impl Processor {
     fn process_execute_mint<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo<'a>,
         data_account_next_executors: &AccountInfo<'a>,
-        token_account_recipient: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
@@ -895,14 +895,14 @@ impl Processor {
 
     fn process_propose_burn<'a>(
         program_id: &Pubkey,
-        account_proposer: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
+        account_proposer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -936,14 +936,14 @@ impl Processor {
 
     fn process_propose_burn_for_mint<'a>(
         program_id: &Pubkey,
-        account_proposer: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
+        account_proposer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -978,13 +978,13 @@ impl Processor {
     fn process_execute_burn<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo<'a>,
         data_account_next_executors: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
@@ -1040,12 +1040,12 @@ impl Processor {
     fn process_cancel_burn<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -1072,14 +1072,14 @@ impl Processor {
 
     fn process_propose_lock<'a>(
         program_id: &Pubkey,
-        account_proposer: &AccountInfo<'a>,
+        system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
+        account_proposer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -1208,11 +1208,11 @@ impl Processor {
 
     fn process_propose_unlock<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -1245,14 +1245,14 @@ impl Processor {
     fn process_execute_unlock<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo<'a>,
         data_account_next_executors: &AccountInfo<'a>,
-        token_account_recipient: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,

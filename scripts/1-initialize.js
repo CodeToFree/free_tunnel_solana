@@ -143,11 +143,11 @@ async function main() {
   const initializeInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: admin.publicKey, isSigner: true, isWritable: true },
       { pubkey: basicStoragePda, isSigner: false, isWritable: true },
       { pubkey: tokensProposersPda, isSigner: false, isWritable: true },
       { pubkey: executorsAtIndexPda, isSigner: false, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,
   });

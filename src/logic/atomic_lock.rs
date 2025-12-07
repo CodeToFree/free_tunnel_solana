@@ -39,13 +39,13 @@ impl AtomicLock {
 
     pub(crate) fn propose_lock_internal<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
+        account_proposer: &AccountInfo<'a>, // signer
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_proposer: &AccountInfo<'a>, // signer
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
@@ -144,11 +144,11 @@ impl AtomicLock {
     pub(crate) fn cancel_lock_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
@@ -200,10 +200,10 @@ impl AtomicLock {
 
     pub(crate) fn propose_unlock_internal<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
+        account_proposer: &AccountInfo<'a>, // signer
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
-        account_proposer: &AccountInfo<'a>, // signer
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -245,14 +245,14 @@ impl AtomicLock {
     pub(crate) fn execute_unlock_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        token_account_recipient: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,

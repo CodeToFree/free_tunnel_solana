@@ -145,24 +145,24 @@ async function main() {
     keys: [
       // 0. system_account_token_program
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      // 1. data_account_basic_storage
-      { pubkey: new PublicKey(programPdas.basicStorage), isSigner: false, isWritable: false },
-      // 2. data_account_tokens_proposers
-      { pubkey: new PublicKey(programPdas.tokensProposers), isSigner: false, isWritable: true }, // Writable to update amount
-      // 3. data_account_proposed_mint
-      { pubkey: proposedMintPda, isSigner: false, isWritable: true },
-      // 4. data_account_current_executors
-      { pubkey: currentExecutorsPda, isSigner: false, isWritable: false },
-      // 5. data_account_next_executors
-      { pubkey: nextExecutorsPda, isSigner: false, isWritable: false },
-      // 6. token_account_recipient
-      { pubkey: recipientTokenAccount, isSigner: false, isWritable: true },
-      // 7. account_token_mint
-      { pubkey: tokenMint, isSigner: false, isWritable: true },
-      // 8. account_multisig_owner
-      { pubkey: multisigAddress, isSigner: false, isWritable: false },
-      // 9. account_contract_signer (The PDA is the sole signer for the CPI)
+      // 1. account_contract_signer (The PDA is the sole signer for the CPI)
       { pubkey: contractSignerPda, isSigner: false, isWritable: false },
+      // 2. token_account_recipient
+      { pubkey: recipientTokenAccount, isSigner: false, isWritable: true },
+      // 3. data_account_basic_storage
+      { pubkey: new PublicKey(programPdas.basicStorage), isSigner: false, isWritable: false },
+      // 4. data_account_tokens_proposers
+      { pubkey: new PublicKey(programPdas.tokensProposers), isSigner: false, isWritable: true }, // Writable to update amount
+      // 5. data_account_proposed_mint
+      { pubkey: proposedMintPda, isSigner: false, isWritable: true },
+      // 6. data_account_current_executors
+      { pubkey: currentExecutorsPda, isSigner: false, isWritable: false },
+      // 7. data_account_next_executors
+      { pubkey: nextExecutorsPda, isSigner: false, isWritable: false },
+      // 8. account_token_mint
+      { pubkey: tokenMint, isSigner: false, isWritable: true },
+      // 9. account_multisig_owner
+      { pubkey: multisigAddress, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,
   });

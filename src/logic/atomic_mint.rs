@@ -81,10 +81,10 @@ impl AtomicMint {
 
     pub(crate) fn propose_mint_internal<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
@@ -115,15 +115,15 @@ impl AtomicMint {
     pub(crate) fn execute_mint_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        token_account_recipient: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
@@ -218,13 +218,13 @@ impl AtomicMint {
 
     pub(crate) fn propose_burn_internal<'a>(
         program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
+        account_proposer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_proposer: &AccountInfo<'a>,
-        system_program: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
@@ -274,13 +274,13 @@ impl AtomicMint {
     pub(crate) fn execute_burn_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         data_account_current_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
@@ -345,11 +345,11 @@ impl AtomicMint {
     pub(crate) fn cancel_burn_internal<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
