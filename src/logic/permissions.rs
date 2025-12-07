@@ -74,9 +74,9 @@ impl Permissions {
     pub(crate) fn init_executors_internal<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
+        account_admin: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_executors_at_index: &AccountInfo<'a>,
-        account_admin: &AccountInfo<'a>,
         executors: &Vec<EthAddress>,
         threshold: u64,
         exe_index: u64,

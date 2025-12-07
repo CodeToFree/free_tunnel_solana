@@ -523,9 +523,9 @@ impl Processor {
         Permissions::init_executors_internal(
             program_id,
             system_program,
+            account_admin,
             data_account_basic_storage,
             data_account_executors_at_index,
-            account_admin,
             executors,
             threshold,
             exe_index,
@@ -760,10 +760,10 @@ impl Processor {
         // Process
         AtomicMint::propose_mint_internal(
             program_id,
+            system_program,
             account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_mint,
-            system_program,
             req_id,
             recipient,
         )
@@ -801,10 +801,10 @@ impl Processor {
         // Process
         AtomicMint::propose_mint_internal(
             program_id,
+            system_program,
             account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_mint,
-            system_program,
             req_id,
             recipient,
         )
@@ -858,15 +858,15 @@ impl Processor {
         AtomicMint::execute_mint_internal(
             program_id,
             system_account_token_program,
+            account_contract_signer,
+            token_account_recipient,
             data_account_basic_storage,
             data_account_tokens_proposers,
             data_account_proposed_mint,
             data_account_current_executors,
             data_account_next_executors,
-            token_account_recipient,
             account_token_mint,
             account_multisig_owner,
-            account_contract_signer,
             req_id,
             signatures,
             executors,
@@ -923,13 +923,13 @@ impl Processor {
         // Process
         AtomicMint::propose_burn_internal(
             program_id,
+            system_program,
             system_account_token_program,
+            account_proposer,
+            token_account_contract,
+            token_account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_burn,
-            token_account_proposer,
-            token_account_contract,
-            account_proposer,
-            system_program,
             req_id,
         )
     }
@@ -964,13 +964,13 @@ impl Processor {
         // Process
         AtomicMint::propose_burn_internal(
             program_id,
+            system_program,
             system_account_token_program,
+            account_proposer,
+            token_account_contract,
+            token_account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_burn,
-            token_account_proposer,
-            token_account_contract,
-            account_proposer,
-            system_program,
             req_id,
         )
     }
@@ -1022,13 +1022,13 @@ impl Processor {
         AtomicMint::execute_burn_internal(
             program_id,
             system_account_token_program,
+            account_contract_signer,
+            token_account_contract,
             data_account_basic_storage,
             data_account_tokens_proposers,
             data_account_proposed_burn,
             data_account_current_executors,
             data_account_next_executors,
-            token_account_contract,
-            account_contract_signer,
             account_token_mint,
             req_id,
             signatures,
@@ -1061,11 +1061,11 @@ impl Processor {
         AtomicMint::cancel_burn_internal(
             program_id,
             system_account_token_program,
+            account_contract_signer,
+            token_account_contract,
+            token_account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_burn,
-            token_account_proposer,
-            token_account_contract,
-            account_contract_signer,
             req_id,
         )
     }
@@ -1100,13 +1100,13 @@ impl Processor {
         // Process
         AtomicLock::propose_lock_internal(
             program_id,
+            system_program,
             system_account_token_program,
+            account_proposer,
+            token_account_contract,
+            token_account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_lock,
-            token_account_proposer,
-            token_account_contract,
-            account_proposer,
-            system_program,
             req_id,
         )
     }
@@ -1168,12 +1168,12 @@ impl Processor {
     fn process_cancel_lock<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        token_account_proposer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_tokens_proposers: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
-        token_account_proposer: &AccountInfo<'a>,
-        token_account_contract: &AccountInfo<'a>,
-        account_contract_signer: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check data account conditions
@@ -1197,11 +1197,11 @@ impl Processor {
         AtomicLock::cancel_lock_internal(
             program_id,
             system_account_token_program,
+            account_contract_signer,
+            token_account_contract,
+            token_account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_lock,
-            token_account_proposer,
-            token_account_contract,
-            account_contract_signer,
             req_id,
         )
     }
@@ -1233,10 +1233,10 @@ impl Processor {
         // Process
         AtomicLock::propose_unlock_internal(
             program_id,
+            system_program,
+            account_proposer,
             data_account_tokens_proposers,
             data_account_proposed_unlock,
-            account_proposer,
-            system_program,
             req_id,
             recipient,
         )
@@ -1292,14 +1292,14 @@ impl Processor {
         AtomicLock::execute_unlock_internal(
             program_id,
             system_account_token_program,
+            account_contract_signer,
+            token_account_contract,
+            token_account_recipient,
             data_account_basic_storage,
             data_account_tokens_proposers,
             data_account_proposed_unlock,
             data_account_current_executors,
             data_account_next_executors,
-            token_account_recipient,
-            token_account_contract,
-            account_contract_signer,
             req_id,
             signatures,
             executors,
