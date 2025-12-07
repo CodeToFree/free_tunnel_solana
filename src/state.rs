@@ -30,6 +30,11 @@ pub struct ProposedLock {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
+pub struct ProposedUnlock {
+    pub inner: Pubkey,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct ProposedMint {
     pub inner: Pubkey,
 }

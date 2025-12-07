@@ -12,7 +12,7 @@ use crate::{
     constants::{Constants, EthAddress},
     logic::{permissions::Permissions, req_helpers::ReqId},
     error::FreeTunnelError,
-    state::{ProposedLock, BasicStorage},
+    state::{ProposedLock, ProposedUnlock, BasicStorage},
     utils::{DataAccountUtils, SignatureUtils},
 };
 
@@ -228,8 +228,8 @@ impl AtomicLock {
             data_account_proposed_unlock,
             Constants::PREFIX_UNLOCK,
             &req_id.data,
-            size_of::<ProposedLock>() + Constants::SIZE_LENGTH,
-            ProposedLock { inner: *recipient },
+            size_of::<ProposedUnlock>() + Constants::SIZE_LENGTH,
+            ProposedUnlock { inner: *recipient },
         )?;
 
         // Update locked-balance data
@@ -258,7 +258,7 @@ impl AtomicLock {
     ) -> ProgramResult {
         // Check conditions
         let recipient =
-            DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_unlock)?
+            DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
                 .inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
@@ -279,7 +279,7 @@ impl AtomicLock {
         // Update proposed-unlock data
         DataAccountUtils::write_account_data(
             data_account_proposed_unlock,
-            ProposedLock {
+            ProposedUnlock {
                 inner: Constants::EXECUTED_PLACEHOLDER,
             },
         )?;
@@ -320,7 +320,7 @@ impl AtomicLock {
     ) -> ProgramResult {
         // Check conditions
         let recipient =
-            DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_unlock)?
+            DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
                 .inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
@@ -333,7 +333,7 @@ impl AtomicLock {
         // Update proposed-unlock data
         DataAccountUtils::write_account_data(
             data_account_proposed_unlock,
-            ProposedLock {
+            ProposedUnlock {
                 inner: Constants::EXECUTED_PLACEHOLDER,
             },
         )?;
