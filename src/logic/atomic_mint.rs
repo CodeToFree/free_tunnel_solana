@@ -119,14 +119,12 @@ impl AtomicMint {
         token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_proposed_mint: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
-        exe_index: u64,
     ) -> ProgramResult {
         // Check conditions
         let recipient =
@@ -138,13 +136,10 @@ impl AtomicMint {
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
         SignatureUtils::check_multi_signatures(
-            data_account_basic_storage,
-            data_account_current_executors,
-            data_account_next_executors,
+            data_account_executors,
             &message,
             signatures,
             executors,
-            exe_index,
         )?;
 
         // Update proposed-mint data
@@ -277,13 +272,11 @@ impl AtomicMint {
         token_account_contract: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_proposed_burn: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         account_token_mint: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
-        exe_index: u64,
     ) -> ProgramResult {
         // Check conditions
         let proposer =
@@ -295,13 +288,10 @@ impl AtomicMint {
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
         SignatureUtils::check_multi_signatures(
-            data_account_basic_storage,
-            data_account_current_executors,
-            data_account_next_executors,
+            data_account_executors,
             &message,
             signatures,
             executors,
-            exe_index,
         )?;
 
         // Update proposed-burn data

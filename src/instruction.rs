@@ -36,7 +36,7 @@ pub enum FreeTunnelInstruction {
 
     /// [4]
     /// 0. data_account_basic_storage
-    /// 1. data_account_current_executors: data account for storing executors at `index`
+    /// 1. data_account_executors: data account for storing executors at `index`
     /// 2. data_account_next_executors: data account for storing executors at `index + 1`
     UpdateExecutors {
         new_executors: Vec<EthAddress>,
@@ -81,7 +81,7 @@ pub enum FreeTunnelInstruction {
     /// 2. token_account_recipient: token account for the recipient, should be different for each token
     /// 3. data_account_basic_storage
     /// 4. data_account_proposed_mint
-    /// 5. data_account_current_executors
+    /// 5. data_account_executors
     /// 6. data_account_next_executors
     /// 7. account_token_mint: token mint account (token contract address)
     /// 8. account_multisig_owner: multisig owner account
@@ -123,7 +123,7 @@ pub enum FreeTunnelInstruction {
     /// 2. token_account_contract
     /// 3. data_account_basic_storage
     /// 4. data_account_proposed_burn
-    /// 5. data_account_current_executors
+    /// 5. data_account_executors
     /// 6. data_account_next_executors
     /// 7. account_token_mint
     ExecuteBurn {
@@ -155,7 +155,7 @@ pub enum FreeTunnelInstruction {
     /// [16]
     /// 0. data_account_basic_storage
     /// 1. data_account_proposed_lock
-    /// 2. data_account_current_executors
+    /// 2. data_account_executors
     /// 3. data_account_next_executors
     ExecuteLock {
         req_id: ReqId,
@@ -187,7 +187,7 @@ pub enum FreeTunnelInstruction {
     /// 3. token_account_recipient
     /// 4. data_account_basic_storage
     /// 5. data_account_proposed_unlock
-    /// 6. data_account_current_executors
+    /// 6. data_account_executors
     /// 7. data_account_next_executors
     ExecuteUnlock {
         req_id: ReqId,

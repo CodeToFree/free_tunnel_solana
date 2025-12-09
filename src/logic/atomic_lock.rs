@@ -97,12 +97,10 @@ impl AtomicLock {
         _program_id: &Pubkey,
         data_account_basic_storage: &AccountInfo,
         data_account_proposed_lock: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
-        exe_index: u64,
     ) -> ProgramResult {
         // Check conditions
         let proposer =
@@ -114,13 +112,10 @@ impl AtomicLock {
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
         SignatureUtils::check_multi_signatures(
-            data_account_basic_storage,
-            data_account_current_executors,
-            data_account_next_executors,
+            data_account_executors,
             &message,
             signatures,
             executors,
-            exe_index,
         )?;
 
         // Update proposed-lock data
@@ -249,12 +244,10 @@ impl AtomicLock {
         token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo,
         data_account_proposed_unlock: &AccountInfo<'a>,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
-        exe_index: u64,
     ) -> ProgramResult {
         // Check conditions
         let recipient =
@@ -267,13 +260,10 @@ impl AtomicLock {
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
         SignatureUtils::check_multi_signatures(
-            data_account_basic_storage,
-            data_account_current_executors,
-            data_account_next_executors,
+            data_account_executors,
             &message,
             signatures,
             executors,
-            exe_index,
         )?;
 
         // Update proposed-unlock data

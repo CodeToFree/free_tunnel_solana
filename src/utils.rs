@@ -17,7 +17,7 @@ use solana_system_interface::instruction::create_account;
 use crate::{
     constants::{Constants, EthAddress},
     error::{DataAccountError, FreeTunnelError},
-    state::{BasicStorage, ExecutorsInfo},
+    state::ExecutorsInfo,
 };
 
 pub struct SignatureUtils;
@@ -105,19 +105,17 @@ impl SignatureUtils {
     }
 
     fn check_executors_for_index(
-        data_account_basic_storage: &AccountInfo,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         executors: &Vec<EthAddress>,
-        exe_index: u64,
     ) -> ProgramResult {
         // Check executors threshold
         let ExecutorsInfo {
             index: _,
             threshold,
             active_since,
+            inactive_after,
             executors: current_executors,
-        } = DataAccountUtils::read_account_data(data_account_current_executors)?;
+        } = DataAccountUtils::read_account_data(data_account_executors)?;
         if executors.len() < threshold as usize {
             return Err(FreeTunnelError::NotMeetThreshold.into());
         }
@@ -128,19 +126,9 @@ impl SignatureUtils {
             return Err(FreeTunnelError::ExecutorsNotYetActive.into());
         }
 
-        // Check timestamp for next index
-        let BasicStorage {
-            executors_group_length,
-            ..
-        } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
-        if executors_group_length > exe_index + 1 {
-            let ExecutorsInfo {
-                active_since: next_active_since,
-                ..
-            } = DataAccountUtils::read_account_data(data_account_next_executors)?;
-            if now > (next_active_since as i64) {
-                return Err(FreeTunnelError::ExecutorsOfNextIndexIsActive.into());
-            }
+        // Check timestamp for inactive_after
+        if inactive_after != 0 && now >= (inactive_after as i64) {
+            return Err(FreeTunnelError::ExecutorsOfNextIndexIsActive.into());
         }
 
         // Check executors index
@@ -157,23 +145,17 @@ impl SignatureUtils {
     }
 
     pub(crate) fn check_multi_signatures(
-        data_account_basic_storage: &AccountInfo,
-        data_account_current_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         message: &[u8],
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
-        exe_index: u64,
     ) -> ProgramResult {
         if signatures.len() != executors.len() {
             return Err(FreeTunnelError::ArrayLengthNotEqual.into());
         }
         Self::check_executors_for_index(
-            data_account_basic_storage,
-            data_account_current_executors,
-            data_account_next_executors,
+            data_account_executors,
             executors,
-            exe_index,
         )?;
 
         for (i, executor) in executors.iter().enumerate() {

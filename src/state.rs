@@ -21,6 +21,7 @@ pub struct ExecutorsInfo {
     pub index: u64,
     pub threshold: u64,
     pub active_since: u64,
+    pub inactive_after: u64, // 0 means never inactive
     pub executors: Vec<EthAddress>,
 }
 

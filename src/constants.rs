@@ -30,6 +30,6 @@ impl Constants {
     // Data account size
     pub const SIZE_LENGTH: usize = 4; // actual length for the data account (not capacity)
     pub const SIZE_BASIC_STORAGE: usize = 1 + 32 + 8 +  32 * (32 + 1 + 8 + 32); // `mint_or_lock`, `admin` and `executors_group_length`, `tokens` (and `decimals`) and `proposers`, up to 32 tokens and 32 proposers
-    pub const SIZE_EXECUTORS_STORAGE: usize = 8 + 8 + 8 + 20 * 64; // `index`, `threshold`, `active_since` and `executors`, up to 64 executors
+    pub const SIZE_EXECUTORS_STORAGE: usize = 8 + 8 + 8 + 8 + 20 * 64; // `index`, `threshold`, `active_since`, `inactive_after` and `executors`, up to 64 executors
     pub const SIZE_ADDRESS_STORAGE: usize = 32;
 }

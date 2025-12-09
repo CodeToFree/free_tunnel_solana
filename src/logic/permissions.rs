@@ -106,19 +106,20 @@ impl Permissions {
                 Constants::PREFIX_EXECUTORS,
                 &exe_index.to_le_bytes(),
                 Constants::SIZE_EXECUTORS_STORAGE + Constants::SIZE_LENGTH,
-                ExecutorsInfo {
-                    index: exe_index,
-                    threshold,
-                    active_since: 1,
-                    executors: executors.clone(),
-                },
+            ExecutorsInfo {
+                index: exe_index,
+                threshold,
+                active_since: 1,
+                inactive_after: 0,
+                executors: executors.clone(),
+            },
             )
         }
     }
 
     pub(crate) fn update_executors(
         data_account_basic_storage: &AccountInfo,
-        data_account_current_executors: &AccountInfo,
+        data_account_executors: &AccountInfo,
         data_account_next_executors: &AccountInfo,
         new_executors: &Vec<EthAddress>,
         threshold: u64,
@@ -169,14 +170,17 @@ impl Permissions {
 
         // Check multi signatures
         SignatureUtils::check_multi_signatures(
-            data_account_basic_storage,
-            data_account_current_executors,
-            data_account_next_executors,
+            data_account_executors,
             &msg,
             signatures,
             executors,
-            exe_index,
         )?;
+
+        // Update current executors' inactive_after
+        let mut current_executors_info: ExecutorsInfo =
+            DataAccountUtils::read_account_data(data_account_executors)?;
+        current_executors_info.inactive_after = active_since;
+        DataAccountUtils::write_account_data(data_account_executors, current_executors_info)?;
 
         // Add executors to storage
         let mut basic_storage: BasicStorage =
@@ -191,6 +195,7 @@ impl Permissions {
                     index: new_index,
                     threshold,
                     active_since,
+                    inactive_after: 0,
                     executors: new_executors.clone(),
                 },
             )
@@ -200,6 +205,7 @@ impl Permissions {
                 threshold: next_threshold,
                 active_since: next_active_since,
                 executors: next_executors,
+                ..
             } = DataAccountUtils::read_account_data(data_account_next_executors)?;
             if active_since < next_active_since
                 || threshold < next_threshold
@@ -213,6 +219,7 @@ impl Permissions {
                     index: new_index,
                     threshold,
                     active_since,
+                    inactive_after: 0,
                     executors: new_executors.clone(),
                 },
             )
