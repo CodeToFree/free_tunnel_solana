@@ -120,7 +120,7 @@ impl Permissions {
     pub(crate) fn update_executors(
         data_account_basic_storage: &AccountInfo,
         data_account_executors: &AccountInfo,
-        data_account_next_executors: &AccountInfo,
+        data_account_new_executors: &AccountInfo,
         new_executors: &Vec<EthAddress>,
         threshold: u64,
         active_since: u64,
@@ -190,7 +190,7 @@ impl Permissions {
             basic_storage.executors_group_length = new_index + 1;
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
             DataAccountUtils::write_account_data(
-                data_account_next_executors,
+                data_account_new_executors,
                 ExecutorsInfo {
                     index: new_index,
                     threshold,
@@ -206,7 +206,7 @@ impl Permissions {
                 active_since: next_active_since,
                 executors: next_executors,
                 ..
-            } = DataAccountUtils::read_account_data(data_account_next_executors)?;
+            } = DataAccountUtils::read_account_data(data_account_new_executors)?;
             if active_since < next_active_since
                 || threshold < next_threshold
                 || !SignatureUtils::cmp_addr_list(new_executors, &next_executors)
@@ -214,7 +214,7 @@ impl Permissions {
                 return Err(FreeTunnelError::FailedToOverwriteExistingExecutors.into());
             }
             DataAccountUtils::write_account_data(
-                data_account_next_executors,
+                data_account_new_executors,
                 ExecutorsInfo {
                     index: new_index,
                     threshold,

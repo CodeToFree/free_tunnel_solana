@@ -85,12 +85,12 @@ impl Processor {
             } => {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let data_account_next_executors = next_account_info(accounts_iter)?;
+                let data_account_new_executors = next_account_info(accounts_iter)?;
                 Self::process_update_executors(
                     program_id,
                     data_account_basic_storage,
                     data_account_executors,
-                    data_account_next_executors,
+                    data_account_new_executors,
                     &new_executors,
                     threshold,
                     active_since,
@@ -167,7 +167,6 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let data_account_next_executors = next_account_info(accounts_iter)?;
                 let account_token_mint = next_account_info(accounts_iter)?;
                 let account_multisig_owner = next_account_info(accounts_iter)?;
                 Self::process_execute_mint(
@@ -178,7 +177,6 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_proposed_mint,
                     data_account_executors,
-                    data_account_next_executors,
                     account_token_mint,
                     account_multisig_owner,
                     &req_id,
@@ -249,7 +247,6 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let data_account_next_executors = next_account_info(accounts_iter)?;
                 let account_token_mint = next_account_info(accounts_iter)?;
                 Self::process_execute_burn(
                     program_id,
@@ -259,7 +256,6 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_proposed_burn,
                     data_account_executors,
-                    data_account_next_executors,
                     account_token_mint,
                     &req_id,
                     &signatures,
@@ -314,13 +310,11 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let data_account_next_executors = next_account_info(accounts_iter)?;
                 Self::process_execute_lock(
                     program_id,
                     data_account_basic_storage,
                     data_account_proposed_lock,
                     data_account_executors,
-                    data_account_next_executors,
                     &req_id,
                     &signatures,
                     &executors,
@@ -373,7 +367,6 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let data_account_next_executors = next_account_info(accounts_iter)?;
                 Self::process_execute_unlock(
                     program_id,
                     system_account_token_program,
@@ -383,7 +376,6 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_proposed_unlock,
                     data_account_executors,
-                    data_account_next_executors,
                     &req_id,
                     &signatures,
                     &executors,
@@ -548,7 +540,7 @@ impl Processor {
         program_id: &Pubkey,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_executors: &AccountInfo<'a>,
-        data_account_next_executors: &AccountInfo<'a>,
+        data_account_new_executors: &AccountInfo<'a>,
         new_executors: &Vec<EthAddress>,
         threshold: u64,
         active_since: u64,
@@ -571,7 +563,7 @@ impl Processor {
         )?;
         DataAccountUtils::check_account_match(
             program_id,
-            data_account_next_executors,
+            data_account_new_executors,
             Constants::PREFIX_EXECUTORS,
             &(exe_index + 1).to_le_bytes(),
         )?;
@@ -580,7 +572,7 @@ impl Processor {
         Permissions::update_executors(
             data_account_basic_storage,
             data_account_executors,
-            data_account_next_executors,
+            data_account_new_executors,
             new_executors,
             threshold,
             active_since,
@@ -746,7 +738,6 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         data_account_executors: &AccountInfo<'a>,
-        data_account_next_executors: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         account_multisig_owner: &AccountInfo<'a>,
         req_id: &ReqId,
@@ -761,20 +752,16 @@ impl Processor {
                 data_account_basic_storage,
                 data_account_proposed_mint,
                 data_account_executors,
-                data_account_next_executors,
             ],
             &[
                 Constants::BASIC_STORAGE,
                 Constants::PREFIX_MINT,
                 Constants::PREFIX_EXECUTORS,
-                Constants::PREFIX_EXECUTORS,
             ],
             &[
                 b"",
-                b"",
                 &req_id.data,
                 &exe_index.to_le_bytes(),
-                &(exe_index + 1).to_le_bytes(),
             ],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
@@ -903,7 +890,6 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_burn: &AccountInfo<'a>,
         data_account_executors: &AccountInfo<'a>,
-        data_account_next_executors: &AccountInfo<'a>,
         account_token_mint: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
@@ -917,20 +903,16 @@ impl Processor {
                 data_account_basic_storage,
                 data_account_proposed_burn,
                 data_account_executors,
-                data_account_next_executors,
             ],
             &[
                 Constants::BASIC_STORAGE,
                 Constants::PREFIX_BURN,
                 Constants::PREFIX_EXECUTORS,
-                Constants::PREFIX_EXECUTORS,
             ],
             &[
                 b"",
-                b"",
                 &req_id.data,
                 &exe_index.to_le_bytes(),
-                &(exe_index + 1).to_le_bytes(),
             ],
         )?;
         Self::check_is_mint_contract(data_account_basic_storage)?;
@@ -1025,7 +1007,6 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_lock: &AccountInfo<'a>,
         data_account_executors: &AccountInfo<'a>,
-        data_account_next_executors: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
@@ -1038,20 +1019,16 @@ impl Processor {
                 data_account_basic_storage,
                 data_account_proposed_lock,
                 data_account_executors,
-                data_account_next_executors,
             ],
             &[
                 Constants::BASIC_STORAGE,
                 Constants::PREFIX_LOCK,
                 Constants::PREFIX_EXECUTORS,
-                Constants::PREFIX_EXECUTORS,
             ],
             &[
                 b"",
-                b"",
                 &req_id.data,
                 &exe_index.to_le_bytes(),
-                &(exe_index + 1).to_le_bytes(),
             ],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
@@ -1089,7 +1066,10 @@ impl Processor {
                 Constants::PREFIX_LOCK,
                 Constants::CONTRACT_SIGNER,
             ],
-            &[b"", &req_id.data, b""],
+            &[
+                &req_id.data, 
+                b""
+            ],
         )?;
         Self::check_is_lock_contract(data_account_basic_storage)?;
 
@@ -1150,7 +1130,6 @@ impl Processor {
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,
         data_account_executors: &AccountInfo<'a>,
-        data_account_next_executors: &AccountInfo<'a>,
         req_id: &ReqId,
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
@@ -1163,22 +1142,18 @@ impl Processor {
                 data_account_basic_storage,
                 data_account_proposed_unlock,
                 data_account_executors,
-                data_account_next_executors,
                 account_contract_signer,
             ],
             &[
                 Constants::BASIC_STORAGE,
                 Constants::PREFIX_UNLOCK,
                 Constants::PREFIX_EXECUTORS,
-                Constants::PREFIX_EXECUTORS,
                 Constants::CONTRACT_SIGNER,
             ],
             &[
                 b"",
-                b"",
                 &req_id.data,
                 &exe_index.to_le_bytes(),
-                &(exe_index + 1).to_le_bytes(),
                 b"",
             ],
         )?;
