@@ -181,27 +181,15 @@ impl DataAccountUtils {
 
     pub fn check_account_match(
         program_id: &Pubkey,
-        account: &AccountInfo,
+        data_account: &AccountInfo,
         prefix: &[u8],
         phrase: &[u8],
     ) -> ProgramResult {
         let (pda_pubkey, _) = Pubkey::find_program_address(&[prefix, phrase], program_id);
-        match account.key == &pda_pubkey {
+        match data_account.key == &pda_pubkey {
             true => Ok(()),
             false => Err(DataAccountError::PdaAccountMismatch.into()),
         }
-    }
-
-    pub fn check_account_match_batch(
-        program_id: &Pubkey,
-        accounts: &[&AccountInfo],
-        prefix: &[&[u8]],
-        phrase: &[&[u8]],
-    ) -> ProgramResult {
-        for i in 0..accounts.len() {
-            Self::check_account_match(program_id, &accounts[i], prefix[i], phrase[i])?;
-        }
-        Ok(())
     }
 
     pub fn check_account_ownership(program_id: &Pubkey, account: &AccountInfo) -> ProgramResult {
