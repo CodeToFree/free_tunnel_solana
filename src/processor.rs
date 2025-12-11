@@ -32,13 +32,13 @@ impl Processor {
                 let system_program = next_account_info(accounts_iter)?;
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
-                let data_account_executors_at_index = next_account_info(accounts_iter)?;
+                let data_account_executors = next_account_info(accounts_iter)?;
                 Self::process_initialize(
                     program_id,
                     system_program,
                     account_admin,
                     data_account_basic_storage,
-                    data_account_executors_at_index,
+                    data_account_executors,
                     is_mint_contract,
                     &executors,
                     threshold,
@@ -418,7 +418,7 @@ impl Processor {
         system_program: &AccountInfo<'a>,
         account_admin: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
-        data_account_executors_at_index: &AccountInfo<'a>,
+        data_account_executors: &AccountInfo<'a>,
         is_mint_contract: bool,
         executors: &Vec<EthAddress>,
         threshold: u64,
@@ -433,7 +433,7 @@ impl Processor {
         )?;
         DataAccountUtils::check_account_match(
             program_id,
-            data_account_executors_at_index,
+            data_account_executors,
             Constants::PREFIX_EXECUTORS,
             &exe_index.to_le_bytes(),
         )?;
@@ -463,7 +463,7 @@ impl Processor {
             system_program,
             account_admin,
             data_account_basic_storage,
-            data_account_executors_at_index,
+            data_account_executors,
             executors,
             threshold,
             exe_index,

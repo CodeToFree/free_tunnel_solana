@@ -11,7 +11,7 @@ pub enum FreeTunnelInstruction {
     /// 0. system_program: system program account, `11111111111111111111111111111111`
     /// 1. account_admin: the admin account, should be signer and payer
     /// 2. data_account_basic_storage: data account for storing basic storage (includes tokens, decimals, locked_balance, and proposers)
-    /// 3. data_account_executors_at_index: data account for storing executors at index
+    /// 3. data_account_executors: data account for storing executors at index
     Initialize {
         is_mint_contract: bool,
         executors: Vec<EthAddress>,
