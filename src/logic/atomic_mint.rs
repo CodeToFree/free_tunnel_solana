@@ -108,7 +108,7 @@ impl AtomicMint {
 
         // Check amount & token index
         req_id.checked_amount(data_account_basic_storage)?;
-        req_id.checked_token_index(data_account_basic_storage)?;
+        req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         Ok(())
     }
 

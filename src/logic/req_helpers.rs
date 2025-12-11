@@ -53,19 +53,6 @@ impl ReqId {
         self.data[7]
     }
 
-    pub fn checked_token_index(
-        &self,
-        data_account_basic_storage: &AccountInfo,
-    ) -> Result<u8, ProgramError> {
-        let BasicStorage { tokens, .. } =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
-        if tokens[self.token_index()] == Pubkey::default() {
-            Err(FreeTunnelError::TokenIndexNonExistent.into())
-        } else {
-            Ok(self.token_index())
-        }
-    }
-
     pub fn checked_token_index_pubkey_decimal(
         &self,
         data_account_basic_storage: &AccountInfo,

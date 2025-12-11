@@ -128,7 +128,7 @@ impl AtomicLock {
 
         // Update locked-balance data
         let amount = req_id.checked_amount(data_account_basic_storage)?;
-        let token_index = req_id.checked_token_index(data_account_basic_storage)?;
+        let (token_index, _, _) = req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         basic_storage.locked_balance[token_index] += amount;
@@ -229,7 +229,7 @@ impl AtomicLock {
 
         // Update locked-balance data
         let amount = req_id.checked_amount(data_account_basic_storage)?;
-        let token_index = req_id.checked_token_index(data_account_basic_storage)?;
+        let (token_index, _, _) = req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         basic_storage.locked_balance[token_index] -= amount;
@@ -330,7 +330,7 @@ impl AtomicLock {
 
         // Update locked-balance data
         let amount = req_id.checked_amount(data_account_basic_storage)?;
-        let token_index = req_id.checked_token_index(data_account_basic_storage)?;
+        let (token_index, _, _) = req_id.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         basic_storage.locked_balance[token_index] += amount;
