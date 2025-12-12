@@ -46,7 +46,7 @@ impl AtomicLock {
         }
     }
 
-    pub(crate) fn propose_lock_internal<'a>(
+    pub(crate) fn propose_lock<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
@@ -106,7 +106,7 @@ impl AtomicLock {
         )
     }
 
-    pub(crate) fn execute_lock_internal<'a>(
+    pub(crate) fn execute_lock<'a>(
         _program_id: &Pubkey,
         data_account_basic_storage: &AccountInfo,
         data_account_proposed_lock: &AccountInfo<'a>,
@@ -149,7 +149,7 @@ impl AtomicLock {
         DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
     }
 
-    pub(crate) fn cancel_lock_internal<'a>(
+    pub(crate) fn cancel_lock<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
@@ -207,7 +207,7 @@ impl AtomicLock {
         )
     }
 
-    pub(crate) fn propose_unlock_internal<'a>(
+    pub(crate) fn propose_unlock<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>, // signer
@@ -252,7 +252,7 @@ impl AtomicLock {
         DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
     }
 
-    pub(crate) fn execute_unlock_internal<'a>(
+    pub(crate) fn execute_unlock<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
@@ -319,7 +319,7 @@ impl AtomicLock {
         )
     }
 
-    pub(crate) fn cancel_unlock_internal<'a>(
+    pub(crate) fn cancel_unlock<'a>(
         _program_id: &Pubkey,
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_unlock: &AccountInfo<'a>,

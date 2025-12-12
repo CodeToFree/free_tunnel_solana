@@ -58,7 +58,7 @@ impl Processor {
                 )?;
 
                 // Process internal logic
-                Permissions::init_executors_internal(
+                Permissions::init_executors(
                     program_id,
                     system_program,
                     account_admin,
@@ -83,12 +83,12 @@ impl Processor {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
-                Permissions::add_proposer_internal(account_admin, data_account_basic_storage, &new_proposer)
+                Permissions::add_proposer(account_admin, data_account_basic_storage, &new_proposer)
             }
             FreeTunnelInstruction::RemoveProposer { proposer } => {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
-                Permissions::remove_proposer_internal(account_admin, data_account_basic_storage, &proposer)
+                Permissions::remove_proposer(account_admin, data_account_basic_storage, &proposer)
             }
             FreeTunnelInstruction::UpdateExecutors {
                 new_executors,
@@ -148,7 +148,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
-                AtomicMint::propose_mint_internal(
+                AtomicMint::propose_mint(
                     program_id,
                     system_program,
                     account_proposer,
@@ -165,7 +165,7 @@ impl Processor {
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
-                AtomicMint::propose_mint_internal(
+                AtomicMint::propose_mint(
                     program_id,
                     system_program,
                     account_proposer,
@@ -192,7 +192,7 @@ impl Processor {
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
-                AtomicMint::execute_mint_internal(
+                AtomicMint::execute_mint(
                     program_id,
                     system_account_token_program,
                     account_contract_signer,
@@ -211,7 +211,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
-                AtomicMint::cancel_mint_internal(data_account_basic_storage, data_account_proposed_mint, &req_id)
+                AtomicMint::cancel_mint(data_account_basic_storage, data_account_proposed_mint, &req_id)
             }
             FreeTunnelInstruction::ProposeBurn { req_id } => {
                 let system_program = next_account_info(accounts_iter)?;
@@ -223,7 +223,7 @@ impl Processor {
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
-                AtomicMint::propose_burn_internal(
+                AtomicMint::propose_burn(
                     program_id,
                     system_program,
                     system_account_token_program,
@@ -245,7 +245,7 @@ impl Processor {
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
-                AtomicMint::propose_burn_internal(
+                AtomicMint::propose_burn(
                     program_id,
                     system_program,
                     system_account_token_program,
@@ -273,7 +273,7 @@ impl Processor {
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
-                AtomicMint::execute_burn_internal(
+                AtomicMint::execute_burn(
                     program_id,
                     system_account_token_program,
                     account_contract_signer,
@@ -296,7 +296,7 @@ impl Processor {
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
-                AtomicMint::cancel_burn_internal(
+                AtomicMint::cancel_burn(
                     program_id,
                     system_account_token_program,
                     account_contract_signer,
@@ -317,7 +317,7 @@ impl Processor {
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_lock, Constants::PREFIX_LOCK, &req_id.data)?;
-                AtomicLock::propose_lock_internal(
+                AtomicLock::propose_lock(
                     program_id,
                     system_program,
                     system_account_token_program,
@@ -341,7 +341,7 @@ impl Processor {
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_lock, Constants::PREFIX_LOCK, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
-                AtomicLock::execute_lock_internal(
+                AtomicLock::execute_lock(
                     program_id,
                     data_account_basic_storage,
                     data_account_proposed_lock,
@@ -360,7 +360,7 @@ impl Processor {
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_lock, Constants::PREFIX_LOCK, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
-                AtomicLock::cancel_lock_internal(
+                AtomicLock::cancel_lock(
                     program_id,
                     system_account_token_program,
                     account_contract_signer,
@@ -378,7 +378,7 @@ impl Processor {
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_unlock, Constants::PREFIX_UNLOCK, &req_id.data)?;
-                AtomicLock::propose_unlock_internal(
+                AtomicLock::propose_unlock(
                     program_id,
                     system_program,
                     account_proposer,
@@ -405,7 +405,7 @@ impl Processor {
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_unlock, Constants::PREFIX_UNLOCK, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
                 DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
-                AtomicLock::execute_unlock_internal(
+                AtomicLock::execute_unlock(
                     program_id,
                     system_account_token_program,
                     account_contract_signer,
@@ -424,7 +424,7 @@ impl Processor {
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_unlock, Constants::PREFIX_UNLOCK, &req_id.data)?;
-                AtomicLock::cancel_unlock_internal(
+                AtomicLock::cancel_unlock(
                     program_id,
                     data_account_basic_storage,
                     data_account_proposed_unlock,

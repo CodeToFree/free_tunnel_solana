@@ -43,7 +43,7 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn add_proposer_internal(
+    pub(crate) fn add_proposer(
         account_admin: &AccountInfo,
         data_account_basic_storage: &AccountInfo,
         proposer: &Pubkey,
@@ -59,7 +59,7 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn remove_proposer_internal(
+    pub(crate) fn remove_proposer(
         account_admin: &AccountInfo,
         data_account_basic_storage: &AccountInfo,
         proposer: &Pubkey,
@@ -75,7 +75,7 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn init_executors_internal<'a>(
+    pub(crate) fn init_executors<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         account_admin: &AccountInfo<'a>,

@@ -88,7 +88,7 @@ impl AtomicMint {
         }
     }
 
-    pub(crate) fn propose_mint_internal<'a>(
+    pub(crate) fn propose_mint<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
@@ -132,7 +132,7 @@ impl AtomicMint {
         Ok(())
     }
 
-    pub(crate) fn execute_mint_internal<'a>(
+    pub(crate) fn execute_mint<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
@@ -206,7 +206,7 @@ impl AtomicMint {
         )
     }
 
-    pub(crate) fn cancel_mint_internal<'a>(
+    pub(crate) fn cancel_mint<'a>(
         data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         req_id: &ReqId,
@@ -232,7 +232,7 @@ impl AtomicMint {
         )
     }
 
-    pub(crate) fn propose_burn_internal<'a>(
+    pub(crate) fn propose_burn<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
         system_account_token_program: &AccountInfo<'a>,
@@ -294,7 +294,7 @@ impl AtomicMint {
         )
     }
 
-    pub(crate) fn execute_burn_internal<'a>(
+    pub(crate) fn execute_burn<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
@@ -360,7 +360,7 @@ impl AtomicMint {
         )
     }
 
-    pub(crate) fn cancel_burn_internal<'a>(
+    pub(crate) fn cancel_burn<'a>(
         program_id: &Pubkey,
         system_account_token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
