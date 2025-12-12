@@ -12,7 +12,7 @@ use crate::{
     constants::{Constants, EthAddress},
     logic::{permissions::Permissions, req_helpers::ReqId},
     error::FreeTunnelError,
-    state::{ProposedBurn, ProposedMint},
+    state::{BasicStorage, ProposedBurn, ProposedMint},
     utils::{DataAccountUtils, SignatureUtils},
 };
 
@@ -34,6 +34,15 @@ impl AtomicMint {
                 }
             }
             false => Err(FreeTunnelError::InvalidTokenAccount.into()),
+        }
+    }
+
+    fn check_is_mint_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
+        let basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        match basic_storage.mint_or_lock {
+            true => Ok(()),
+            false => Err(FreeTunnelError::NotMintContract.into()),
         }
     }
 
@@ -88,7 +97,18 @@ impl AtomicMint {
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
+        // Check signers
+        if !account_proposer.is_signer {
+            return Err(FreeTunnelError::ProposerNotSigner.into());
+        }
+        AtomicMint::check_propose_mint(
+            data_account_basic_storage,
+            account_proposer,
+            req_id,
+        )?;
+        
         // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
         req_id.checked_created_time()?;
         if !data_account_proposed_mint.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
@@ -127,6 +147,7 @@ impl AtomicMint {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
@@ -186,11 +207,12 @@ impl AtomicMint {
     }
 
     pub(crate) fn cancel_mint_internal<'a>(
-        _program_id: &Pubkey,
+        data_account_basic_storage: &AccountInfo<'a>,
         data_account_proposed_mint: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
@@ -221,7 +243,14 @@ impl AtomicMint {
         data_account_proposed_burn: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
+        // Check signers
+        if !account_proposer.is_signer {
+            return Err(FreeTunnelError::ProposerNotSigner.into());
+        }
+        AtomicMint::check_propose_burn(req_id)?;
+
         // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
         req_id.checked_created_time()?;
         if !data_account_proposed_burn.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
@@ -279,6 +308,7 @@ impl AtomicMint {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -341,6 +371,7 @@ impl AtomicMint {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {

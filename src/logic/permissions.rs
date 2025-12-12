@@ -44,9 +44,11 @@ impl Permissions {
     }
 
     pub(crate) fn add_proposer_internal(
+        account_admin: &AccountInfo,
         data_account_basic_storage: &AccountInfo,
         proposer: &Pubkey,
     ) -> ProgramResult {
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if basic_storage.proposers.contains(&proposer) {
@@ -58,9 +60,11 @@ impl Permissions {
     }
 
     pub(crate) fn remove_proposer_internal(
+        account_admin: &AccountInfo,
         data_account_basic_storage: &AccountInfo,
         proposer: &Pubkey,
     ) -> ProgramResult {
+        Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if !basic_storage.proposers.contains(proposer) {

@@ -37,6 +37,15 @@ impl AtomicLock {
         }
     }
 
+    fn check_is_lock_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
+        let basic_storage: BasicStorage =
+            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        match basic_storage.mint_or_lock {
+            true => Err(FreeTunnelError::NotLockContract.into()),
+            false => Ok(()),
+        }
+    }
+
     pub(crate) fn propose_lock_internal<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
@@ -48,7 +57,11 @@ impl AtomicLock {
         data_account_proposed_lock: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
+        // Check signers
+        Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
+
         // Check conditions
+        Self::check_is_lock_contract(data_account_basic_storage)?;
         req_id.assert_from_chain_only()?;
         req_id.checked_created_time()?;
         if req_id.action() & 0x0f != 1 {
@@ -103,6 +116,7 @@ impl AtomicLock {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_lock_contract(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -146,6 +160,7 @@ impl AtomicLock {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_lock_contract(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -202,6 +217,7 @@ impl AtomicLock {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_lock_contract(data_account_basic_storage)?;
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
         req_id.assert_from_chain_only()?;
         req_id.checked_created_time()?;
@@ -250,6 +266,7 @@ impl AtomicLock {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_lock_contract(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
                 .inner;
@@ -309,6 +326,7 @@ impl AtomicLock {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
+        Self::check_is_lock_contract(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
                 .inner;
