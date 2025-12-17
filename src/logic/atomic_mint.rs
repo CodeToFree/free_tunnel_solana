@@ -46,40 +46,6 @@ impl AtomicMint {
         }
     }
 
-    pub(crate) fn check_propose_mint<'a>(
-        data_account_basic_storage: &AccountInfo<'a>,
-        account_proposer: &AccountInfo,
-        req_id: &ReqId,
-    ) -> ProgramResult {
-        let specific_action = req_id.action() & 0x0f;
-        if specific_action != 1 && specific_action != 3 {
-            Err(FreeTunnelError::InvalidAction.into())
-        } else {
-            Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
-            req_id.checked_created_time()?;
-            req_id.assert_to_chain_only()
-        }
-    }
-
-    pub(crate) fn check_propose_burn<'a>(req_id: &ReqId) -> ProgramResult {
-        let specific_action = req_id.action() & 0x0f;
-        if specific_action == 2 {
-            req_id.checked_created_time()?;
-            match req_id.assert_to_chain_only() {
-                Ok(()) => Ok(()),
-                Err(_) => Err(FreeTunnelError::EHubNotMintSide.into()),
-            }
-        } else if specific_action == 3 {
-            req_id.checked_created_time()?;
-            match req_id.assert_from_chain_only() {
-                Ok(()) => Ok(()),
-                Err(_) => Err(FreeTunnelError::EHubNotMintSide.into()),
-            }
-        } else {
-            Err(FreeTunnelError::InvalidAction.into())
-        }
-    }
-
     pub(crate) fn propose_mint<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
@@ -95,12 +61,16 @@ impl AtomicMint {
         }
 
         // Check conditions
+        let specific_action = req_id.action() & 0x0f;
+        if specific_action != 1 && specific_action != 3 {
+            return Err(FreeTunnelError::InvalidAction.into());
+        } else {
+            Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
+            req_id.checked_created_time()?;
+            req_id.assert_to_chain_only()?;
+        }
+
         Self::check_is_mint_contract(data_account_basic_storage)?;
-        Self::check_propose_mint(
-            data_account_basic_storage,
-            account_proposer,
-            req_id,
-        )?;
         if !data_account_proposed_mint.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
@@ -243,8 +213,21 @@ impl AtomicMint {
         }
 
         // Check conditions
+        let specific_action = req_id.action() & 0x0f;
+        match specific_action {
+            2 | 3 => {
+                req_id.checked_created_time()?;
+                let (check, err) = if specific_action == 2 {
+                    (req_id.assert_to_chain_only(), FreeTunnelError::EHubNotMintSide)
+                } else {
+                    (req_id.assert_from_chain_only(), FreeTunnelError::EHubNotMintOppositeSide)
+                };
+                check.map_err(|_| err)?;
+            }
+            _ => return Err(FreeTunnelError::InvalidAction.into())
+        }
+
         Self::check_is_mint_contract(data_account_basic_storage)?;
-        Self::check_propose_burn(req_id)?;
         if !data_account_proposed_burn.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
