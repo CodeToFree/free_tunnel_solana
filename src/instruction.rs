@@ -69,13 +69,6 @@ pub enum FreeTunnelInstruction {
     ProposeMint { req_id: ReqId, recipient: Pubkey },
 
     /// [8]
-    /// 0. system_program
-    /// 1. account_proposer: the proposer account, should be signer and payer
-    /// 2. data_account_basic_storage
-    /// 3. data_account_proposed_mint
-    ProposeMintForBurn { req_id: ReqId, recipient: Pubkey },
-
-    /// [9]
     /// 0. system_account_token_program: token program account, should be `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA` on mainnet
     /// 1. account_contract_signer: contract signer that can sign for the token transfer
     /// 2. token_account_recipient: token account for the recipient, should be different for each token
@@ -91,12 +84,12 @@ pub enum FreeTunnelInstruction {
         exe_index: u64,
     },
 
-    /// [10]
+    /// [9]
     /// 0. data_account_basic_storage
     /// 1. data_account_proposed_mint
     CancelMint { req_id: ReqId },
 
-    /// [11]
+    /// [10]
     /// 0. system_program
     /// 1. system_account_token_program
     /// 2. account_proposer: the proposer account, should be signer and payer
@@ -106,17 +99,7 @@ pub enum FreeTunnelInstruction {
     /// 6. data_account_proposed_burn: data account for storing `ProposedBurn` (recipient)
     ProposeBurn { req_id: ReqId },
 
-    /// [12]
-    /// 0. system_program
-    /// 1. system_account_token_program
-    /// 2. account_proposer: the proposer account, should be signer and payer
-    /// 3. token_account_contract
-    /// 4. token_account_proposer
-    /// 5. data_account_basic_storage
-    /// 6. data_account_proposed_burn
-    ProposeBurnForMint { req_id: ReqId },
-
-    /// [13]
+    /// [11]
     /// 0. system_account_token_program
     /// 1. account_contract_signer: contract signer that can sign for the token transfer
     /// 2. token_account_contract
@@ -131,7 +114,7 @@ pub enum FreeTunnelInstruction {
         exe_index: u64,
     },
 
-    /// [14]
+    /// [12]
     /// 0. system_account_token_program
     /// 1. account_contract_signer
     /// 2. token_account_contract
@@ -140,7 +123,7 @@ pub enum FreeTunnelInstruction {
     /// 5. data_account_proposed_burn
     CancelBurn { req_id: ReqId },
 
-    /// [15]
+    /// [13]
     /// 0. system_program
     /// 1. system_account_token_program
     /// 2. account_proposer: the proposer account, should be signer and payer
@@ -150,7 +133,7 @@ pub enum FreeTunnelInstruction {
     /// 6. data_account_proposed_lock
     ProposeLock { req_id: ReqId },
 
-    /// [16]
+    /// [14]
     /// 0. data_account_basic_storage
     /// 1. data_account_proposed_lock
     /// 2. data_account_executors
@@ -161,7 +144,7 @@ pub enum FreeTunnelInstruction {
         exe_index: u64,
     },
 
-    /// [17]
+    /// [15]
     /// 0. system_account_token_program
     /// 1. account_contract_signer
     /// 2. token_account_contract
@@ -170,14 +153,14 @@ pub enum FreeTunnelInstruction {
     /// 5. data_account_proposed_lock
     CancelLock { req_id: ReqId },
 
-    /// [18]
+    /// [16]
     /// 0. system_program
     /// 1. account_proposer: the proposer account, should be signer and payer
     /// 2. data_account_basic_storage
     /// 3. data_account_proposed_unlock
     ProposeUnlock { req_id: ReqId, recipient: Pubkey },
 
-    /// [19]
+    /// [17]
     /// 0. system_account_token_program
     /// 1. account_contract_signer
     /// 2. token_account_contract
@@ -192,7 +175,7 @@ pub enum FreeTunnelInstruction {
         exe_index: u64,
     },
 
-    /// [20]
+    /// [18]
     /// 0. data_account_basic_storage
     /// 1. data_account_proposed_unlock
     CancelUnlock { req_id: ReqId },
@@ -256,10 +239,6 @@ impl FreeTunnelInstruction {
                 Ok(Self::ProposeMint { req_id, recipient })
             }
             8 => {
-                let (req_id, recipient) = BorshDeserialize::try_from_slice(rest)?;
-                Ok(Self::ProposeMintForBurn { req_id, recipient })
-            }
-            9 => {
                 let (req_id, signatures, executors, exe_index) =
                     BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ExecuteMint {
@@ -269,19 +248,15 @@ impl FreeTunnelInstruction {
                     exe_index,
                 })
             }
-            10 => {
+            9 => {
                 let req_id = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::CancelMint { req_id })
             }
-            11 => {
+            10 => {
                 let req_id = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ProposeBurn { req_id })
             }
-            12 => {
-                let req_id = BorshDeserialize::try_from_slice(rest)?;
-                Ok(Self::ProposeBurnForMint { req_id })
-            }
-            13 => {
+            11 => {
                 let (req_id, signatures, executors, exe_index) =
                     BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ExecuteBurn {
@@ -291,15 +266,15 @@ impl FreeTunnelInstruction {
                     exe_index,
                 })
             }
-            14 => {
+            12 => {
                 let req_id = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::CancelBurn { req_id })
             }
-            15 => {
+            13 => {
                 let req_id = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ProposeLock { req_id })
             }
-            16 => {
+            14 => {
                 let (req_id, signatures, executors, exe_index) =
                     BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ExecuteLock {
@@ -309,15 +284,15 @@ impl FreeTunnelInstruction {
                     exe_index,
                 })
             }
-            17 => {
+            15 => {
                 let req_id = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::CancelLock { req_id })
             }
-            18 => {
+            16 => {
                 let (req_id, recipient) = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ProposeUnlock { req_id, recipient })
             }
-            19 => {
+            17 => {
                 let (req_id, signatures, executors, exe_index) =
                     BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::ExecuteUnlock {
@@ -327,7 +302,7 @@ impl FreeTunnelInstruction {
                     exe_index,
                 })
             }
-            20 => {
+            18 => {
                 let req_id = BorshDeserialize::try_from_slice(rest)?;
                 Ok(Self::CancelUnlock { req_id })
             }

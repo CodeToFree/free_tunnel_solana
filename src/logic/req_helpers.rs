@@ -135,7 +135,7 @@ impl ReqId {
     }
 
     pub fn assert_from_chain_only(&self) -> ProgramResult {
-        if self.data[16] != Constants::CHAIN {
+        if self.data[16] != Constants::HUB_ID {
             Err(FreeTunnelError::NotFromCurrentChain.into())
         } else {
             Ok(())
@@ -143,7 +143,7 @@ impl ReqId {
     }
 
     pub fn assert_to_chain_only(&self) -> ProgramResult {
-        if self.data[17] != Constants::CHAIN {
+        if self.data[17] != Constants::HUB_ID {
             Err(FreeTunnelError::NotToCurrentChain.into())
         } else {
             Ok(())

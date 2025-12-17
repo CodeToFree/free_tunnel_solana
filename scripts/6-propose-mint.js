@@ -27,8 +27,8 @@ const PROPOSAL_DETAILS = {
   action: 1, // 1 for Mint
   tokenIndex: 56,
   amount: BigInt(123456),
-  fromChain: 0xff,
-  toChain: 0xff,
+  fromChain: 0xa1,
+  toChain: 0xa1,
 };
 
 // Borsh schema for the ProposeMint instruction

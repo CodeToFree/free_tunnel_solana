@@ -136,7 +136,7 @@ async function main() {
   };
 
   const payloadBuffer = borsh.serialize(INSTRUCTION_SCHEMA, instructionDataPayload);
-  const instructionBuffer = Buffer.concat([Buffer.from([9]), payloadBuffer]); // 9 for ExecuteMint
+  const instructionBuffer = Buffer.concat([Buffer.from([8]), payloadBuffer]); // 8 for ExecuteMint
 
   // 5. Create and Send Transaction
   console.log("\nCreating ExecuteMint instruction...");

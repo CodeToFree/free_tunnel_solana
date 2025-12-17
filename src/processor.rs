@@ -135,7 +135,7 @@ impl Processor {
             FreeTunnelInstruction::RemoveToken { token_index } => {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
-                DataAccountUtils::check_account_match(program_id, &data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
+                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
                 Self::process_remove_token(
                     account_admin,
                     data_account_basic_storage,
@@ -147,23 +147,7 @@ impl Processor {
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
-                DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
-                AtomicMint::propose_mint(
-                    program_id,
-                    system_program,
-                    account_proposer,
-                    data_account_basic_storage,
-                    data_account_proposed_mint,
-                    &req_id,
-                    &recipient,
-                )
-            }
-            FreeTunnelInstruction::ProposeMintForBurn { req_id, recipient } => {
-                let system_program = next_account_info(accounts_iter)?;
-                let account_proposer = next_account_info(accounts_iter)?;
-                let data_account_basic_storage = next_account_info(accounts_iter)?;
-                let data_account_proposed_mint = next_account_info(accounts_iter)?;
-                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
+                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
                 AtomicMint::propose_mint(
                     program_id,
@@ -192,6 +176,7 @@ impl Processor {
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
+                DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
                 AtomicMint::execute_mint(
                     program_id,
                     system_account_token_program,
@@ -235,28 +220,6 @@ impl Processor {
                     &req_id,
                 )
             }
-            FreeTunnelInstruction::ProposeBurnForMint { req_id } => {
-                let system_program = next_account_info(accounts_iter)?;
-                let system_account_token_program = next_account_info(accounts_iter)?;
-                let account_proposer = next_account_info(accounts_iter)?;
-                let token_account_contract = next_account_info(accounts_iter)?;
-                let token_account_proposer = next_account_info(accounts_iter)?;
-                let data_account_basic_storage = next_account_info(accounts_iter)?;
-                let data_account_proposed_burn = next_account_info(accounts_iter)?;
-                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
-                DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
-                AtomicMint::propose_burn(
-                    program_id,
-                    system_program,
-                    system_account_token_program,
-                    account_proposer,
-                    token_account_contract,
-                    token_account_proposer,
-                    data_account_basic_storage,
-                    data_account_proposed_burn,
-                    &req_id,
-                )
-            }
             FreeTunnelInstruction::ExecuteBurn {
                 req_id,
                 signatures,
@@ -273,6 +236,7 @@ impl Processor {
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
+                DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
                 AtomicMint::execute_burn(
                     program_id,
                     system_account_token_program,
@@ -296,6 +260,7 @@ impl Processor {
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
+                DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
                 AtomicMint::cancel_burn(
                     program_id,
                     system_account_token_program,
@@ -358,6 +323,7 @@ impl Processor {
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
+                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_lock, Constants::PREFIX_LOCK, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
                 AtomicLock::cancel_lock(

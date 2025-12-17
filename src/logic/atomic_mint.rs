@@ -51,40 +51,32 @@ impl AtomicMint {
         account_proposer: &AccountInfo,
         req_id: &ReqId,
     ) -> ProgramResult {
-        if req_id.action() & 0x0f != 1 {
-            Err(FreeTunnelError::NotLockMint.into())
+        let specific_action = req_id.action() & 0x0f;
+        if specific_action != 1 && specific_action != 3 {
+            Err(FreeTunnelError::InvalidAction.into())
         } else {
             Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
-            req_id.assert_to_chain_only()
-        }
-    }
-
-    pub(crate) fn check_propose_mint_from_burn<'a>(
-        data_account_basic_storage: &AccountInfo<'a>,
-        account_proposer: &AccountInfo,
-        req_id: &ReqId,
-    ) -> ProgramResult {
-        if req_id.action() & 0x0f != 3 {
-            Err(FreeTunnelError::NotBurnMint.into())
-        } else {
-            Permissions::assert_only_proposer(data_account_basic_storage, account_proposer)?;
+            req_id.checked_created_time()?;
             req_id.assert_to_chain_only()
         }
     }
 
     pub(crate) fn check_propose_burn<'a>(req_id: &ReqId) -> ProgramResult {
-        if req_id.action() & 0x0f != 2 {
-            Err(FreeTunnelError::NotBurnUnlock.into())
+        let specific_action = req_id.action() & 0x0f;
+        if specific_action == 2 {
+            req_id.checked_created_time()?;
+            match req_id.assert_to_chain_only() {
+                Ok(()) => Ok(()),
+                Err(_) => Err(FreeTunnelError::EHubNotMintSide.into()),
+            }
+        } else if specific_action == 3 {
+            req_id.checked_created_time()?;
+            match req_id.assert_from_chain_only() {
+                Ok(()) => Ok(()),
+                Err(_) => Err(FreeTunnelError::EHubNotMintSide.into()),
+            }
         } else {
-            req_id.assert_to_chain_only()
-        }
-    }
-
-    pub(crate) fn check_propose_burn_from_mint<'a>(req_id: &ReqId) -> ProgramResult {
-        if req_id.action() & 0x0f != 3 {
-            Err(FreeTunnelError::NotBurnMint.into())
-        } else {
-            req_id.assert_from_chain_only()
+            Err(FreeTunnelError::InvalidAction.into())
         }
     }
 
@@ -101,15 +93,14 @@ impl AtomicMint {
         if !account_proposer.is_signer {
             return Err(FreeTunnelError::ProposerNotSigner.into());
         }
-        AtomicMint::check_propose_mint(
+
+        // Check conditions
+        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::check_propose_mint(
             data_account_basic_storage,
             account_proposer,
             req_id,
         )?;
-        
-        // Check conditions
-        Self::check_is_mint_contract(data_account_basic_storage)?;
-        req_id.checked_created_time()?;
         if !data_account_proposed_mint.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
@@ -247,16 +238,15 @@ impl AtomicMint {
         if !account_proposer.is_signer {
             return Err(FreeTunnelError::ProposerNotSigner.into());
         }
-        AtomicMint::check_propose_burn(req_id)?;
+        if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
+            return Err(FreeTunnelError::InvalidProposer.into());
+        }
 
         // Check conditions
         Self::check_is_mint_contract(data_account_basic_storage)?;
-        req_id.checked_created_time()?;
+        Self::check_propose_burn(req_id)?;
         if !data_account_proposed_burn.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
-        }
-        if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidProposer.into());
         }
 
         // Write proposed-burn data

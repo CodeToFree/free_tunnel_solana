@@ -93,9 +93,9 @@ async function main() {
     instructionDataPayload
   );
 
-  // Prepend the instruction index (10 for CancelMint)
+  // Prepend the instruction index (9 for CancelMint)
   const instructionBuffer = Buffer.concat([
-    Buffer.from([10]),
+    Buffer.from([9]),
     payloadBuffer
   ]);
 
