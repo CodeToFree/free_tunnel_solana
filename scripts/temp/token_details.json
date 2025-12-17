@@ -1,9 +1,9 @@
 {
-  "tokenMint": "8qQZj7mv2W59qBxAdx2rR9voXUSqTgvBwA7RLqk3SZ3z",
-  "multisigAddress": "FxQBqwrvoqMLkVM6TKQsmf2GSzv5TZDdpD8Fe1Wv92hr",
+  "tokenMint": "CFoAkLSfxZ7yLDncHxJMvEp76BQTwig6gCZPqh7ZK5CH",
+  "multisigAddress": "BgwXeg3DTA91omtu1GtRj8kMGN1w3fYQhwf6raV7r3Ed",
   "multisigSigners": [
-    "9mdc7emh2Jb2c6VrztYZb7Vro7hjLPDtpJX83EWGdyjc",
-    "8nx597NhqZi2amSvKty4Hza9XRFE8inuSYYhiGqnLCMP",
+    "DJhAea4P7b1HjpUkzWBGyY7DrdidvFiBrWSi1PFh7PfV",
+    "8D2weUDp7dUdK313cAn1Gj3epq26q1xRU1nXs6uhB6q4",
     "9dbnPzKsnb8E8VbqYBifz4S8TEt5QEovNBecemBoogAG"
   ]
 }

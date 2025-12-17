@@ -1,8 +1,11 @@
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    program_pack::Pack,
     pubkey::Pubkey,
 };
+
+use spl_token::state::Mint;
 
 use crate::{
     constants::Constants, error::FreeTunnelError, instruction::FreeTunnelInstruction, logic::{
@@ -118,18 +121,20 @@ impl Processor {
             }
             FreeTunnelInstruction::AddToken {
                 token_index,
-                token_pubkey,
-                token_decimals,
             } => {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let account_token_mint = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, &data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
+                
+                let mint_state = Mint::unpack(&account_token_mint.data.borrow())?;
+
                 Self::process_add_token(
                     account_admin,
                     data_account_basic_storage,
                     token_index,
-                    &token_pubkey,
-                    token_decimals,
+                    account_token_mint.key,
+                    mint_state.decimals,
                 )
             }
             FreeTunnelInstruction::RemoveToken { token_index } => {

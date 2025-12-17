@@ -21,16 +21,13 @@ const RPC_URL = "http://127.0.0.1:8899";
 // --- Instruction Data ---
 const TOKEN_TO_ADD = {
   index: 56,
-  // We will load the mint address from the file created by 2-deploy-token.sh
-  decimals: 9, // This matches the decimals set in 2-deploy-token.sh
+  // Decimals will be read from the mint account on-chain
 };
 
 // Borsh schema for the AddToken instruction
 const INSTRUCTION_SCHEMA = {
   struct: {
     token_index: 'u8',
-    token_pubkey: { array: { type: 'u8', len: 32 } },
-    token_decimals: 'u8',
   }
 };
 
@@ -91,8 +88,6 @@ async function main() {
   // 3. Serialize instruction data
   const instructionDataPayload = {
     token_index: TOKEN_TO_ADD.index,
-    token_pubkey: TOKEN_MINT.toBuffer(),
-    token_decimals: TOKEN_TO_ADD.decimals,
   };
 
   const payloadBuffer = borsh.serialize(
@@ -115,6 +110,8 @@ async function main() {
       { pubkey: admin.publicKey, isSigner: true, isWritable: false },
       // 1. data_account_basic_storage
       { pubkey: basicStoragePda, isSigner: false, isWritable: true },
+      // 2. account_token_mint
+      { pubkey: TOKEN_MINT, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,
   });
