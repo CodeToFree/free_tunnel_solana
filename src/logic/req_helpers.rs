@@ -41,9 +41,7 @@ impl ReqId {
             Err(FreeTunnelError::CreatedTimeTooEarly.into())
         } else if (time as i64) >= now + 60 {
             Err(FreeTunnelError::CreatedTimeTooLate.into())
-        } else {
-            Ok(time)
-        }
+        } else { Ok(time) }
     }
 
     pub fn action(&self) -> u8 {
@@ -63,12 +61,8 @@ impl ReqId {
             tokens, decimals, ..
         } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         let token_index = self.token_index();
-        let token_pubkey = tokens
-            .get(token_index)
-            .ok_or(FreeTunnelError::TokenIndexNonExistent)?;
-        let decimal = decimals
-            .get(token_index)
-            .ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+        let token_pubkey = tokens.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+        let decimal = decimals.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
         if *token_pubkey == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
@@ -79,8 +73,7 @@ impl ReqId {
                 let token_account_data = token_account.data.borrow();
                 match TokenAccount::valid_account_data(&token_account_data) {
                     true => {
-                        let token_mint =
-                            TokenAccount::unpack_account_mint_unchecked(&token_account_data);
+                        let token_mint = TokenAccount::unpack_account_mint_unchecked(&token_account_data);
                         if *token_pubkey != *token_mint {
                             return Err(FreeTunnelError::TokenMismatch.into());
                         }
@@ -100,33 +93,21 @@ impl ReqId {
         let mut amount = self.raw_amount();
         if amount == 0 {
             Err(FreeTunnelError::AmountCannotBeZero.into())
-        } else {
-            if decimal > 6 {
-                let factor = Self::checked_pow10((decimal - 6) as u32)?;
-                amount = amount
-                    .checked_mul(factor)
-                    .ok_or(FreeTunnelError::ArithmeticOverflow)?;
-                Ok(amount)
-            } else if decimal < 6 {
-                let factor = Self::checked_pow10((6 - decimal) as u32)?;
-                amount /= factor;
-                if amount == 0 {
-                    Err(FreeTunnelError::AmountCannotBeZero.into())
-                } else {
-                    Ok(amount)
-                }
-            } else {
-                Ok(amount)
-            }
-        }
+        } else if decimal > 6 {
+            let factor = Self::checked_pow10((decimal - 6) as u32)?;
+            amount = amount.checked_mul(factor).ok_or(FreeTunnelError::ArithmeticOverflow)?;
+            Ok(amount)
+        } else if decimal < 6 {
+            let factor = Self::checked_pow10((6 - decimal) as u32)?;
+            amount /= factor;
+            if amount == 0 { Err(FreeTunnelError::AmountCannotBeZero.into()) } else { Ok(amount) }
+        } else { Ok(amount) }
     }
 
     fn checked_pow10(exp: u32) -> Result<u64, ProgramError> {
         let mut value = 1u64;
         for _ in 0..exp {
-            value = value
-                .checked_mul(10)
-                .ok_or(FreeTunnelError::ArithmeticOverflow)?;
+            value = value.checked_mul(10).ok_or(FreeTunnelError::ArithmeticOverflow)?;
         }
         Ok(value)
     }
@@ -138,34 +119,25 @@ impl ReqId {
             1 => {
                 let length = 3 + Constants::BRIDGE_CHANNEL.len() + 29 + 66;
                 msg.extend_from_slice(length.to_string().as_bytes());
-                msg.extend_from_slice(b"[");
-                msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
-                msg.extend_from_slice(b"]\n");
+                msg.extend_from_slice(b"["); msg.extend_from_slice(Constants::BRIDGE_CHANNEL); msg.extend_from_slice(b"]\n");
                 msg.extend_from_slice(b"Sign to execute a lock-mint:\n");
-                msg.extend_from_slice(b"0x");
-                msg.extend_from_slice(hex::encode(&self.data).as_bytes());
+                msg.extend_from_slice(b"0x"); msg.extend_from_slice(hex::encode(&self.data).as_bytes());
                 msg
             }
             2 => {
                 let length = 3 + Constants::BRIDGE_CHANNEL.len() + 31 + 66;
                 msg.extend_from_slice(length.to_string().as_bytes());
-                msg.extend_from_slice(b"[");
-                msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
-                msg.extend_from_slice(b"]\n");
+                msg.extend_from_slice(b"["); msg.extend_from_slice(Constants::BRIDGE_CHANNEL); msg.extend_from_slice(b"]\n");
                 msg.extend_from_slice(b"Sign to execute a burn-unlock:\n");
-                msg.extend_from_slice(b"0x");
-                msg.extend_from_slice(hex::encode(&self.data).as_bytes());
+                msg.extend_from_slice(b"0x"); msg.extend_from_slice(hex::encode(&self.data).as_bytes());
                 msg
             }
             3 => {
                 let length = 3 + Constants::BRIDGE_CHANNEL.len() + 29 + 66;
                 msg.extend_from_slice(length.to_string().as_bytes());
-                msg.extend_from_slice(b"[");
-                msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
-                msg.extend_from_slice(b"]\n");
+                msg.extend_from_slice(b"["); msg.extend_from_slice(Constants::BRIDGE_CHANNEL); msg.extend_from_slice(b"]\n");
                 msg.extend_from_slice(b"Sign to execute a burn-mint:\n");
-                msg.extend_from_slice(b"0x");
-                msg.extend_from_slice(hex::encode(&self.data).as_bytes());
+                msg.extend_from_slice(b"0x"); msg.extend_from_slice(hex::encode(&self.data).as_bytes());
                 msg
             }
             _ => vec![],
@@ -175,16 +147,12 @@ impl ReqId {
     pub fn assert_mint_opposite_side(&self) -> ProgramResult {
         if self.data[16] != Constants::HUB_ID {
             Err(FreeTunnelError::NotMintOppositeSide.into())
-        } else {
-            Ok(())
-        }
+        } else { Ok(()) }
     }
 
     pub fn assert_mint_side(&self) -> ProgramResult {
         if self.data[17] != Constants::HUB_ID {
             Err(FreeTunnelError::NotMintSide.into())
-        } else {
-            Ok(())
-        }
+        } else { Ok(()) }
     }
 }

@@ -154,10 +154,7 @@ impl SignatureUtils {
         if signatures.len() != executors.len() {
             return Err(FreeTunnelError::ArrayLengthNotEqual.into());
         }
-        Self::assert_executors_valid(
-            data_account_executors,
-            executors,
-        )?;
+        Self::assert_executors_valid(data_account_executors, executors)?;
 
         for (i, executor) in executors.iter().enumerate() {
             Self::assert_signature_valid(message, signatures[i], *executor)?;

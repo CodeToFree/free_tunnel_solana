@@ -23,9 +23,7 @@ impl Permissions {
             Err(FreeTunnelError::RequireAdminSigner.into())
         } else if !account_admin.is_signer {
             Err(FreeTunnelError::RequireAdminSigner.into())
-        } else {
-            Ok(())
-        }
+        } else { Ok(()) }
     }
 
     pub(crate) fn assert_only_proposer(
@@ -33,15 +31,12 @@ impl Permissions {
         account_proposer: &AccountInfo,
         check_signer: bool,
     ) -> ProgramResult {
-        let basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if !basic_storage.proposers.contains(account_proposer.key) {
             Err(FreeTunnelError::RequireProposerSigner.into())
         } else if check_signer && !account_proposer.is_signer {
             Err(FreeTunnelError::RequireProposerSigner.into())
-        } else {
-            Ok(())
-        }
+        } else { Ok(()) }
     }
 
     pub(crate) fn add_proposer(
@@ -50,14 +45,12 @@ impl Permissions {
         proposer: &Pubkey,
     ) -> ProgramResult {
         Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
-        let mut basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if basic_storage.proposers.contains(&proposer) {
             Err(FreeTunnelError::AlreadyProposer.into())
         } else {
             basic_storage.proposers.push(proposer.clone());
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
-
             msg!("ProposerAdded: {}", proposer);
             Ok(())
         }
@@ -69,14 +62,12 @@ impl Permissions {
         proposer: &Pubkey,
     ) -> ProgramResult {
         Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
-        let mut basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if !basic_storage.proposers.contains(proposer) {
             Err(FreeTunnelError::NotExistingProposer.into())
         } else {
             basic_storage.proposers.retain(|p| p != proposer);
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
-
             msg!("ProposerRemoved: {}", proposer);
             Ok(())
         }
@@ -92,11 +83,9 @@ impl Permissions {
         threshold: u64,
         exe_index: u64,
     ) -> ProgramResult {
-        let mut basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         Self::assert_only_admin(data_account_basic_storage, account_admin)?;
 
-        // Check conditions
         if threshold > executors.len() as u64 {
             Err(FreeTunnelError::NotMeetThreshold.into())
         } else if basic_storage.executors_group_length != 0 {
@@ -117,22 +106,16 @@ impl Permissions {
                 Constants::PREFIX_EXECUTORS,
                 &exe_index.to_le_bytes(),
                 Constants::SIZE_EXECUTORS_STORAGE + Constants::SIZE_LENGTH,
-            ExecutorsInfo {
-                index: exe_index,
-                threshold,
-                active_since: 1,
-                inactive_after: 0,
-                executors: executors.clone(),
-            },
+                ExecutorsInfo {
+                    index: exe_index,
+                    threshold,
+                    active_since: 1,
+                    inactive_after: 0,
+                    executors: executors.clone(),
+                },
             )?;
 
-            msg!(
-                "ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}",
-                exe_index,
-                threshold,
-                1,
-                executors.len()
-            );
+            msg!("ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}", exe_index, threshold, 1, executors.len());
             Ok(())
         }
     }
@@ -150,17 +133,13 @@ impl Permissions {
     ) -> ProgramResult {
         let now = Clock::get()?.unix_timestamp;
 
-        // Check threshold and active since
         if threshold == 0 {
             return Err(FreeTunnelError::ThresholdMustBeGreaterThanZero.into());
-        }
-        if threshold > new_executors.len() as u64 {
+        } else if threshold > new_executors.len() as u64 {
             return Err(FreeTunnelError::NotMeetThreshold.into());
-        }
-        if (active_since as i64) <= now + 36 * 3600 {
+        } else if (active_since as i64) <= now + 36 * 3600 {
             return Err(FreeTunnelError::ActiveSinceShouldAfter36h.into());
-        }
-        if (active_since as i64) >= now + 120 * 3600 {
+        } else if (active_since as i64) >= now + 120 * 3600 {
             return Err(FreeTunnelError::ActiveSinceShouldWithin5d.into());
         }
         SignatureUtils::assert_executors_not_duplicated(new_executors)?;
@@ -174,27 +153,15 @@ impl Permissions {
             + (15 + 10)
             + (25 + SignatureUtils::log10(exe_index) as usize + 1);
         msg.extend_from_slice(length.to_string().as_bytes());
-        msg.extend_from_slice(b"[");
-        msg.extend_from_slice(Constants::BRIDGE_CHANNEL);
-        msg.extend_from_slice(b"]\n");
+        msg.extend_from_slice(b"["); msg.extend_from_slice(Constants::BRIDGE_CHANNEL); msg.extend_from_slice(b"]\n");
         msg.extend_from_slice(b"Sign to update executors to:\n");
         msg.extend_from_slice(&SignatureUtils::join_address_list(new_executors));
-        msg.extend_from_slice(b"Threshold: ");
-        msg.extend_from_slice(threshold.to_string().as_bytes());
-        msg.extend_from_slice(b"\n");
-        msg.extend_from_slice(b"Active since: ");
-        msg.extend_from_slice(active_since.to_string().as_bytes());
-        msg.extend_from_slice(b"\n");
-        msg.extend_from_slice(b"Current executors index: ");
-        msg.extend_from_slice(exe_index.to_string().as_bytes());
+        msg.extend_from_slice(b"Threshold: "); msg.extend_from_slice(threshold.to_string().as_bytes()); msg.extend_from_slice(b"\n");
+        msg.extend_from_slice(b"Active since: "); msg.extend_from_slice(active_since.to_string().as_bytes()); msg.extend_from_slice(b"\n");
+        msg.extend_from_slice(b"Current executors index: "); msg.extend_from_slice(exe_index.to_string().as_bytes());
 
         // Check multi signatures
-        SignatureUtils::assert_multisig_valid(
-            data_account_executors,
-            &msg,
-            signatures,
-            executors,
-        )?;
+        SignatureUtils::assert_multisig_valid(data_account_executors, &msg, signatures, executors)?;
 
         // Update current executors' inactive_after
         let mut current_executors_info: ExecutorsInfo =
@@ -203,8 +170,7 @@ impl Permissions {
         DataAccountUtils::write_account_data(data_account_executors, current_executors_info)?;
 
         // Add executors to storage
-        let mut basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         let new_index = exe_index + 1;
         if new_index == basic_storage.executors_group_length {
             basic_storage.executors_group_length = new_index + 1;
@@ -220,13 +186,7 @@ impl Permissions {
                 },
             )?;
 
-            msg!(
-                "ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}",
-                new_index,
-                threshold,
-                active_since,
-                new_executors.len()
-            );
+            msg!("ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}", new_index, threshold, active_since, new_executors.len());
             Ok(())
         } else {
             let ExecutorsInfo {
@@ -253,13 +213,7 @@ impl Permissions {
                 },
             )?;
 
-            msg!(
-                "ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}",
-                new_index,
-                threshold,
-                active_since,
-                new_executors.len()
-            );
+            msg!("ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}", new_index, threshold, active_since, new_executors.len());
             Ok(())
         }
     }

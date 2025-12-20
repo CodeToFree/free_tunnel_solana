@@ -18,8 +18,7 @@ impl AtomicLock {
     fn assert_contract_mode_is_lock<'a>(
         data_account_basic_storage: &AccountInfo<'a>,
     ) -> ProgramResult {
-        let basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         match basic_storage.mint_or_lock {
             true => Err(FreeTunnelError::NotLockContract.into()),
             false => Ok(()),
@@ -37,27 +36,19 @@ impl AtomicLock {
         data_account_proposed_lock: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         req_id.assert_mint_opposite_side()?;
-        if req_id.action() & 0x0f != 1 {
-            return Err(FreeTunnelError::NotLockMint.into());
-        }
-        // Check signers
-        if !account_proposer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
-        }
+        if req_id.action() & 0x0f != 1 { return Err(FreeTunnelError::NotLockMint.into()); }
+
+        if !account_proposer.is_signer { return Err(ProgramError::MissingRequiredSignature); }
         req_id.checked_created_time()?;
-        if !data_account_proposed_lock.data_is_empty() {
-            return Err(FreeTunnelError::InvalidReqId.into());
-        }
+        if !data_account_proposed_lock.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
         if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidProposer.into());
         }
 
         // Check amount & token
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         // Write proposed-lock data
@@ -73,19 +64,9 @@ impl AtomicLock {
         )?;
 
         // Deposit token
-        token_ops::transfer_to_contract(
-            token_program,
-            token_account_contract,
-            token_account_proposer,
-            account_proposer,
-            amount,
-        )?;
+        token_ops::transfer_to_contract(token_program, token_account_proposer, token_account_contract, account_proposer, amount)?;
 
-        msg!(
-            "TokenLockProposed: req_id={}, proposer={}",
-            hex::encode(req_id.data),
-            account_proposer.key
-        );
+        msg!("TokenLockProposed: req_id={}, proposer={}", hex::encode(req_id.data), account_proposer.key);
         Ok(())
     }
 
@@ -98,29 +79,19 @@ impl AtomicLock {
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
-        let proposer =
-            DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
+        let proposer = DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
 
-        // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::assert_multisig_valid(
-            data_account_executors,
-            &message,
-            signatures,
-            executors,
-        )?;
+        SignatureUtils::assert_multisig_valid(data_account_executors, &message, signatures, executors)?;
 
         // Update proposed-lock data
         DataAccountUtils::write_account_data(
             data_account_proposed_lock,
-            ProposedLock {
-                inner: Constants::EXECUTED_PLACEHOLDER,
-            },
+            ProposedLock { inner: Constants::EXECUTED_PLACEHOLDER },
         )?;
 
         // Update locked-balance data
@@ -128,11 +99,7 @@ impl AtomicLock {
         let amount = req_id.get_checked_amount(decimal)?;
         Self::update_locked_balance(data_account_basic_storage, token_index, amount, true)?;
 
-        msg!(
-            "TokenLockExecuted: req_id={}, proposer={}",
-            hex::encode(req_id.data),
-            proposer
-        );
+        msg!("TokenLockExecuted: req_id={}, proposer={}", hex::encode(req_id.data), proposer);
         Ok(())
     }
 
@@ -147,21 +114,16 @@ impl AtomicLock {
         account_refund: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
-        let proposer =
-            DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
+        let proposer = DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
-        let now = Clock::get()?.unix_timestamp;
-        if now <= (req_id.created_time() + Constants::EXPIRE_PERIOD) as i64 {
-            return Err(FreeTunnelError::WaitUntilExpired.into());
-        }
 
-        // Check amount & token
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let now = Clock::get()?.unix_timestamp;
+        if now <= (req_id.created_time() + Constants::EXPIRE_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
+
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
@@ -177,11 +139,7 @@ impl AtomicLock {
             amount,
         )?;
 
-        msg!(
-            "TokenLockCancelled: req_id={}, proposer={}",
-            hex::encode(req_id.data),
-            proposer
-        );
+        msg!("TokenLockCancelled: req_id={}, proposer={}", hex::encode(req_id.data), proposer);
         Ok(())
     }
 
@@ -194,17 +152,13 @@ impl AtomicLock {
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         req_id.assert_mint_opposite_side()?;
-        if req_id.action() & 0x0f != 2 {
-            return Err(FreeTunnelError::NotBurnUnlock.into());
-        }
+        if req_id.action() & 0x0f != 2 { return Err(FreeTunnelError::NotBurnUnlock.into()); }
+
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer, true)?;
         req_id.checked_created_time()?;
-        if !data_account_proposed_unlock.data_is_empty() {
-            return Err(FreeTunnelError::InvalidReqId.into());
-        }
+        if !data_account_proposed_unlock.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
         if *recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidRecipient.into());
         }
@@ -226,11 +180,7 @@ impl AtomicLock {
             ProposedUnlock { inner: *recipient },
         )?;
 
-        msg!(
-            "TokenUnlockProposed: req_id={}, recipient={}",
-            hex::encode(req_id.data),
-            recipient
-        );
+        msg!("TokenUnlockProposed: req_id={}, recipient={}", hex::encode(req_id.data), recipient);
         Ok(())
     }
 
@@ -247,36 +197,23 @@ impl AtomicLock {
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
-        let recipient =
-            DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
-                .inner;
-        if recipient == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
-        }
+        let recipient = DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?.inner;
+        if recipient == Constants::EXECUTED_PLACEHOLDER { return Err(FreeTunnelError::InvalidReqId.into()); }
 
-        // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::assert_multisig_valid(
-            data_account_executors,
-            &message,
-            signatures,
-            executors,
-        )?;
+        SignatureUtils::assert_multisig_valid(data_account_executors, &message, signatures, executors)?;
 
         // Update proposed-unlock data
         DataAccountUtils::write_account_data(
             data_account_proposed_unlock,
-            ProposedUnlock {
-                inner: Constants::EXECUTED_PLACEHOLDER,
-            },
+            ProposedUnlock { inner: Constants::EXECUTED_PLACEHOLDER },
         )?;
 
         // Unlock token to recipient
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
         let amount = req_id.get_checked_amount(decimal)?;
+
         token_ops::transfer_from_contract(
             program_id,
             token_program,
@@ -286,11 +223,7 @@ impl AtomicLock {
             amount,
         )?;
 
-        msg!(
-            "TokenUnlockExecuted: req_id={}, recipient={}",
-            hex::encode(req_id.data),
-            recipient
-        );
+        msg!("TokenUnlockExecuted: req_id={}, recipient={}", hex::encode(req_id.data), recipient);
         Ok(())
     }
 
@@ -301,18 +234,14 @@ impl AtomicLock {
         account_refund: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
-        let recipient =
-            DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
-                .inner;
+        let recipient = DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
+
         let now = Clock::get()?.unix_timestamp;
-        if now <= (req_id.created_time() + Constants::EXPIRE_EXTRA_PERIOD) as i64 {
-            return Err(FreeTunnelError::WaitUntilExpired.into());
-        }
+        if now <= (req_id.created_time() + Constants::EXPIRE_EXTRA_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
 
         // Update locked-balance data
         let (token_index, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
@@ -322,11 +251,7 @@ impl AtomicLock {
         Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
         DataAccountUtils::close_account(program_id, data_account_proposed_unlock, account_refund)?;
 
-        msg!(
-            "TokenUnlockCancelled: req_id={}, recipient={}",
-            hex::encode(req_id.data),
-            recipient
-        );
+        msg!("TokenUnlockCancelled: req_id={}, recipient={}", hex::encode(req_id.data), recipient);
         Ok(())
     }
 
@@ -337,20 +262,12 @@ impl AtomicLock {
         amount: u64,
         is_add: bool,
     ) -> ProgramResult {
-        let mut basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
-        let locked_balance = basic_storage
-            .locked_balance
-            .get_mut(token_index)
-            .ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+        let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let locked_balance = basic_storage.locked_balance.get_mut(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
         if is_add {
-            *locked_balance = locked_balance
-                .checked_add(amount)
-                .ok_or(FreeTunnelError::ArithmeticOverflow)?;
+            *locked_balance = locked_balance.checked_add(amount).ok_or(FreeTunnelError::ArithmeticOverflow)?;
         } else {
-            *locked_balance = locked_balance
-                .checked_sub(amount)
-                .ok_or(FreeTunnelError::LockedBalanceInsufficient)?;
+            *locked_balance = locked_balance.checked_sub(amount).ok_or(FreeTunnelError::LockedBalanceInsufficient)?;
         }
         DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
     }

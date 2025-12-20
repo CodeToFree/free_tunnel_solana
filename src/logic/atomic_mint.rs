@@ -18,8 +18,7 @@ impl AtomicMint {
     fn assert_contract_mode_is_mint<'a>(
         data_account_basic_storage: &AccountInfo<'a>,
     ) -> ProgramResult {
-        let basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         match basic_storage.mint_or_lock {
             true => Ok(()),
             false => Err(FreeTunnelError::NotMintContract.into()),
@@ -35,18 +34,14 @@ impl AtomicMint {
         req_id: &ReqId,
         recipient: &Pubkey,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         req_id.assert_mint_side()?;
         let specific_action = req_id.action() & 0x0f;
-        if specific_action != 1 && specific_action != 3 {
-            return Err(FreeTunnelError::NotLockMint.into());
-        }
+        if specific_action != 1 && specific_action != 3 { return Err(FreeTunnelError::NotLockMint.into()); }
+
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer, true)?;
         req_id.checked_created_time()?;
-        if !data_account_proposed_mint.data_is_empty() {
-            return Err(FreeTunnelError::InvalidReqId.into());
-        }
+        if !data_account_proposed_mint.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
         if *recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidRecipient.into());
         }
@@ -67,11 +62,7 @@ impl AtomicMint {
             ProposedMint { inner: *recipient },
         )?;
 
-        msg!(
-            "TokenMintProposed: req_id={}, recipient={}",
-            hex::encode(req_id.data),
-            recipient
-        );
+        msg!("TokenMintProposed: req_id={}, recipient={}", hex::encode(req_id.data), recipient);
         Ok(())
     }
 
@@ -89,34 +80,23 @@ impl AtomicMint {
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
-        let recipient =
-            DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
+        let recipient = DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
 
-        // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::assert_multisig_valid(
-            data_account_executors,
-            &message,
-            signatures,
-            executors,
-        )?;
+        SignatureUtils::assert_multisig_valid(data_account_executors, &message, signatures, executors)?;
 
         // Update proposed-mint data
         DataAccountUtils::write_account_data(
             data_account_proposed_mint,
-            ProposedMint {
-                inner: Constants::EXECUTED_PLACEHOLDER,
-            },
+            ProposedMint { inner: Constants::EXECUTED_PLACEHOLDER },
         )?;
 
         // Check token match
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_recipient))?;
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_recipient))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         // Mint to recipient
@@ -124,17 +104,13 @@ impl AtomicMint {
             program_id,
             token_program,
             token_mint,
-            account_contract_signer,
             token_account_recipient,
             account_multisig_owner,
+            account_contract_signer,
             amount,
         )?;
 
-        msg!(
-            "TokenMintExecuted: req_id={}, recipient={}",
-            hex::encode(req_id.data),
-            recipient
-        );
+        msg!("TokenMintExecuted: req_id={}, recipient={}", hex::encode(req_id.data), recipient);
         Ok(())
     }
 
@@ -145,26 +121,19 @@ impl AtomicMint {
         account_refund: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
-        let recipient =
-            DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
+        let recipient = DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
+
         let now = Clock::get()?.unix_timestamp;
-        if now <= (req_id.created_time() + Constants::EXPIRE_EXTRA_PERIOD) as i64 {
-            return Err(FreeTunnelError::WaitUntilExpired.into());
-        }
+        if now <= (req_id.created_time() + Constants::EXPIRE_EXTRA_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
         DataAccountUtils::close_account(program_id, data_account_proposed_mint, account_refund)?;
 
-        msg!(
-            "TokenMintCancelled: req_id={}, recipient={}",
-            hex::encode(req_id.data),
-            recipient
-        );
+        msg!("TokenMintCancelled: req_id={}, recipient={}", hex::encode(req_id.data), recipient);
         Ok(())
     }
 
@@ -179,33 +148,23 @@ impl AtomicMint {
         data_account_proposed_burn: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let specific_action = req_id.action() & 0x0f;
         match specific_action {
-            2 => {
-                req_id.assert_mint_side()?;
-            }
-            3 => {
-                req_id.assert_mint_opposite_side()?;
-            }
+            2 => { req_id.assert_mint_side()?; }
+            3 => { req_id.assert_mint_opposite_side()?; }
             _ => return Err(FreeTunnelError::NotBurnUnlock.into()),
         }
-        // Check signers
-        if !account_proposer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
-        }
+
+        if !account_proposer.is_signer { return Err(ProgramError::MissingRequiredSignature); }
         req_id.checked_created_time()?;
-        if !data_account_proposed_burn.data_is_empty() {
-            return Err(FreeTunnelError::InvalidReqId.into());
-        }
+        if !data_account_proposed_burn.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
         if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidProposer.into());
         }
 
         // Check amount & token
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         // Write proposed-burn data
@@ -221,19 +180,9 @@ impl AtomicMint {
         )?;
 
         // Transfer assets to contract
-        token_ops::transfer_to_contract(
-            token_program,
-            token_account_contract,
-            token_account_proposer,
-            account_proposer,
-            amount,
-        )?;
+        token_ops::transfer_to_contract(token_program, token_account_proposer, token_account_contract, account_proposer, amount)?;
 
-        msg!(
-            "TokenBurnProposed: req_id={}, proposer={}",
-            hex::encode(req_id.data),
-            account_proposer.key
-        );
+        msg!("TokenBurnProposed: req_id={}, proposer={}", hex::encode(req_id.data), account_proposer.key);
         Ok(())
     }
 
@@ -250,49 +199,34 @@ impl AtomicMint {
         signatures: &Vec<[u8; 64]>,
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
-        let proposer =
-            DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
+        let proposer = DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
 
-        // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::assert_multisig_valid(
-            data_account_executors,
-            &message,
-            signatures,
-            executors,
-        )?;
+        SignatureUtils::assert_multisig_valid(data_account_executors, &message, signatures, executors)?;
 
         // Update proposed-burn data
         DataAccountUtils::write_account_data(
             data_account_proposed_burn,
-            ProposedBurn {
-                inner: Constants::EXECUTED_PLACEHOLDER,
-            },
+            ProposedBurn { inner: Constants::EXECUTED_PLACEHOLDER },
         )?;
 
         // Burn token from contract
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
         let amount = req_id.get_checked_amount(decimal)?;
         token_ops::burn_token(
             program_id,
             token_program,
+            token_account_contract,
             token_mint,
             account_contract_signer,
-            token_account_contract,
             amount,
         )?;
 
-        msg!(
-            "TokenBurnExecuted: req_id={}, proposer={}",
-            hex::encode(req_id.data),
-            proposer
-        );
+        msg!("TokenBurnExecuted: req_id={}, proposer={}", hex::encode(req_id.data), proposer);
         Ok(())
     }
 
@@ -307,21 +241,17 @@ impl AtomicMint {
         account_refund: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check conditions
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
-        let proposer =
-            DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
+        let proposer = DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
+
         let now = Clock::get()?.unix_timestamp;
-        if now <= (req_id.created_time() + Constants::EXPIRE_PERIOD) as i64 {
-            return Err(FreeTunnelError::WaitUntilExpired.into());
-        }
+        if now <= (req_id.created_time() + Constants::EXPIRE_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
 
         // Check amount & token
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
@@ -331,17 +261,13 @@ impl AtomicMint {
         token_ops::transfer_from_contract(
             program_id,
             token_program,
-            account_contract_signer,
             token_account_contract,
             token_account_proposer,
+            account_contract_signer,
             amount,
         )?;
 
-        msg!(
-            "TokenBurnCancelled: req_id={}, proposer={}",
-            hex::encode(req_id.data),
-            proposer
-        );
+        msg!("TokenBurnCancelled: req_id={}, proposer={}", hex::encode(req_id.data), proposer);
         Ok(())
     }
 }
