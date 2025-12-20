@@ -143,7 +143,7 @@ async function main() {
   const executeMintInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
-      // 0. system_account_token_program
+      // 0. token_program
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       // 1. account_contract_signer (The PDA is the sole signer for the CPI)
       { pubkey: contractSignerPda, isSigner: false, isWritable: false },

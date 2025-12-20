@@ -17,7 +17,9 @@ use crate::{
 pub struct AtomicLock;
 
 impl AtomicLock {
-    fn check_is_lock_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
+    fn assert_contract_mode_is_lock<'a>(
+        data_account_basic_storage: &AccountInfo<'a>,
+    ) -> ProgramResult {
         let basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         match basic_storage.mint_or_lock {
@@ -29,7 +31,7 @@ impl AtomicLock {
     pub(crate) fn propose_lock<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>, // signer
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
@@ -46,7 +48,7 @@ impl AtomicLock {
         }
 
         // Check conditions
-        Self::check_is_lock_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         req_id.assert_mint_opposite_side()?;
         req_id.checked_created_time()?;
         if req_id.action() & 0x0f != 1 {
@@ -74,7 +76,7 @@ impl AtomicLock {
         let amount = req_id.get_checked_amount(decimal)?;
         invoke_signed(
             &transfer(
-                system_account_token_program.key,
+                token_program.key,
                 token_account_proposer.key,
                 token_account_contract.key,
                 account_proposer.key,
@@ -107,7 +109,7 @@ impl AtomicLock {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_lock_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -116,7 +118,7 @@ impl AtomicLock {
 
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::check_multi_signatures(
+        SignatureUtils::assert_multisig_valid(
             data_account_executors,
             &message,
             signatures,
@@ -146,7 +148,7 @@ impl AtomicLock {
 
     pub(crate) fn cancel_lock<'a>(
         program_id: &Pubkey,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
@@ -156,7 +158,7 @@ impl AtomicLock {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_lock_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -178,7 +180,7 @@ impl AtomicLock {
         }
         invoke_signed(
             &transfer(
-                system_account_token_program.key,
+                token_program.key,
                 token_account_contract.key,
                 token_account_proposer.key,
                 account_contract_signer.key,
@@ -214,7 +216,7 @@ impl AtomicLock {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_lock_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer, true)?;
         req_id.assert_mint_opposite_side()?;
         req_id.checked_created_time()?;
@@ -255,7 +257,7 @@ impl AtomicLock {
 
     pub(crate) fn execute_unlock<'a>(
         program_id: &Pubkey,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
@@ -267,7 +269,7 @@ impl AtomicLock {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_lock_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
                 .inner;
@@ -277,7 +279,7 @@ impl AtomicLock {
 
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::check_multi_signatures(
+        SignatureUtils::assert_multisig_valid(
             data_account_executors,
             &message,
             signatures,
@@ -303,7 +305,7 @@ impl AtomicLock {
         }
         invoke_signed(
             &transfer(
-                system_account_token_program.key,
+                token_program.key,
                 token_account_contract.key,
                 token_account_recipient.key,
                 account_contract_signer.key,
@@ -334,7 +336,7 @@ impl AtomicLock {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_lock_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?
                 .inner;

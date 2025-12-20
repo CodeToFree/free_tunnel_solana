@@ -105,7 +105,7 @@ impl Permissions {
             Err(FreeTunnelError::ThresholdMustBeGreaterThanZero.into())
         } else {
             basic_storage.executors_group_length = exe_index + 1;
-            SignatureUtils::check_executors_not_duplicated(executors)?;
+            SignatureUtils::assert_executors_not_duplicated(executors)?;
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
 
             // Write executors data
@@ -163,7 +163,7 @@ impl Permissions {
         if (active_since as i64) >= now + 120 * 3600 {
             return Err(FreeTunnelError::ActiveSinceShouldWithin5d.into());
         }
-        SignatureUtils::check_executors_not_duplicated(new_executors)?;
+        SignatureUtils::assert_executors_not_duplicated(new_executors)?;
 
         // Construct message
         let mut msg = Constants::ETH_SIGN_HEADER.to_vec();
@@ -189,7 +189,7 @@ impl Permissions {
         msg.extend_from_slice(exe_index.to_string().as_bytes());
 
         // Check multi signatures
-        SignatureUtils::check_multi_signatures(
+        SignatureUtils::assert_multisig_valid(
             data_account_executors,
             &msg,
             signatures,

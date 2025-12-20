@@ -59,7 +59,7 @@ impl SignatureUtils {
         }
     }
 
-    pub(crate) fn check_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
+    pub(crate) fn assert_executors_not_duplicated(executors: &[EthAddress]) -> ProgramResult {
         let mut seen = HashSet::new();
         match executors.iter().all(|addr| seen.insert(addr)) {
             true => Ok(()),
@@ -88,7 +88,7 @@ impl SignatureUtils {
         }
     }
 
-    fn check_signature(
+    fn assert_signature_valid(
         message: &[u8],
         signature: [u8; 64],
         eth_signer: EthAddress,
@@ -105,7 +105,7 @@ impl SignatureUtils {
         }
     }
 
-    fn check_executors_for_index(
+    fn assert_executors_valid(
         data_account_executors: &AccountInfo,
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
@@ -145,7 +145,7 @@ impl SignatureUtils {
         Ok(())
     }
 
-    pub(crate) fn check_multi_signatures(
+    pub(crate) fn assert_multisig_valid(
         data_account_executors: &AccountInfo,
         message: &[u8],
         signatures: &Vec<[u8; 64]>,
@@ -154,13 +154,13 @@ impl SignatureUtils {
         if signatures.len() != executors.len() {
             return Err(FreeTunnelError::ArrayLengthNotEqual.into());
         }
-        Self::check_executors_for_index(
+        Self::assert_executors_valid(
             data_account_executors,
             executors,
         )?;
 
         for (i, executor) in executors.iter().enumerate() {
-            Self::check_signature(message, signatures[i], *executor)?;
+            Self::assert_signature_valid(message, signatures[i], *executor)?;
         }
         Ok(())
     }
@@ -180,7 +180,7 @@ impl DataAccountUtils {
             .map_err(|_| ProgramError::InvalidAccountData)
     }
 
-    pub fn check_account_match(
+    pub fn assert_account_match(
         program_id: &Pubkey,
         data_account: &AccountInfo,
         prefix: &[u8],
@@ -193,7 +193,7 @@ impl DataAccountUtils {
         }
     }
 
-    pub fn check_account_ownership(program_id: &Pubkey, account: &AccountInfo) -> ProgramResult {
+    pub fn assert_owned_by_program(program_id: &Pubkey, account: &AccountInfo) -> ProgramResult {
         match account.owner == program_id {
             true => Ok(()),
             false => Err(DataAccountError::PdaAccountNotOwned.into()),
@@ -269,7 +269,7 @@ impl DataAccountUtils {
         data_account: &AccountInfo<'a>,
         refund_account: &AccountInfo<'a>,
     ) -> ProgramResult {
-        Self::check_account_ownership(program_id, data_account)?;
+        Self::assert_owned_by_program(program_id, data_account)?;
         if !data_account.is_writable {
             return Err(DataAccountError::PdaAccountNotWritable.into());
         }

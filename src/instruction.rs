@@ -67,7 +67,7 @@ pub enum FreeTunnelInstruction {
     ProposeMint { req_id: ReqId, recipient: Pubkey },
 
     /// [8]
-    /// 0. system_account_token_program: token program account, should be `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA` on mainnet
+    /// 0. token_program: token program account, should be `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA` on mainnet
     /// 1. account_contract_signer: contract signer that can sign for the token transfer
     /// 2. token_account_recipient: token account for the recipient, should be different for each token
     /// 3. data_account_basic_storage
@@ -90,7 +90,7 @@ pub enum FreeTunnelInstruction {
 
     /// [10]
     /// 0. system_program
-    /// 1. system_account_token_program
+    /// 1. token_program
     /// 2. account_proposer: the proposer account, should be signer and payer
     /// 3. token_account_contract: token account for this contract, should be different for each token
     /// 4. token_account_proposer: token account for the proposer, should be different for each token
@@ -99,7 +99,7 @@ pub enum FreeTunnelInstruction {
     ProposeBurn { req_id: ReqId },
 
     /// [11]
-    /// 0. system_account_token_program
+    /// 0. token_program
     /// 1. account_contract_signer: contract signer that can sign for the token transfer
     /// 2. token_account_contract
     /// 3. data_account_basic_storage
@@ -114,7 +114,7 @@ pub enum FreeTunnelInstruction {
     },
 
     /// [12]
-    /// 0. system_account_token_program
+    /// 0. token_program
     /// 1. account_contract_signer
     /// 2. token_account_contract
     /// 3. token_account_proposer
@@ -125,7 +125,7 @@ pub enum FreeTunnelInstruction {
 
     /// [13]
     /// 0. system_program
-    /// 1. system_account_token_program
+    /// 1. token_program
     /// 2. account_proposer: the proposer account, should be signer and payer
     /// 3. token_account_contract
     /// 4. token_account_proposer
@@ -145,7 +145,7 @@ pub enum FreeTunnelInstruction {
     },
 
     /// [15]
-    /// 0. system_account_token_program
+    /// 0. token_program
     /// 1. account_contract_signer
     /// 2. token_account_contract
     /// 3. token_account_proposer
@@ -162,7 +162,7 @@ pub enum FreeTunnelInstruction {
     ProposeUnlock { req_id: ReqId, recipient: Pubkey },
 
     /// [17]
-    /// 0. system_account_token_program
+    /// 0. token_program
     /// 1. account_contract_signer
     /// 2. token_account_contract
     /// 3. token_account_recipient

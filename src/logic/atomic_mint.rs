@@ -17,7 +17,9 @@ use crate::{
 pub struct AtomicMint;
 
 impl AtomicMint {
-    fn check_is_mint_contract<'a>(data_account_basic_storage: &AccountInfo<'a>) -> ProgramResult {
+    fn assert_contract_mode_is_mint<'a>(
+        data_account_basic_storage: &AccountInfo<'a>,
+    ) -> ProgramResult {
         let basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         match basic_storage.mint_or_lock {
@@ -44,7 +46,7 @@ impl AtomicMint {
         req_id.checked_created_time()?;
         req_id.assert_mint_side()?;
 
-        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         if !data_account_proposed_mint.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
@@ -78,7 +80,7 @@ impl AtomicMint {
 
     pub(crate) fn execute_mint<'a>(
         program_id: &Pubkey,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         token_account_recipient: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
@@ -91,7 +93,7 @@ impl AtomicMint {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
@@ -100,7 +102,7 @@ impl AtomicMint {
 
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::check_multi_signatures(
+        SignatureUtils::assert_multisig_valid(
             data_account_executors,
             &message,
             signatures,
@@ -128,7 +130,7 @@ impl AtomicMint {
         }
         invoke_signed(
             &mint_to(
-                system_account_token_program.key,
+                token_program.key,
                 token_mint.key,
                 token_account_recipient.key,
                 account_multisig_owner.key, // The 1/3 multisig account is the authority
@@ -161,7 +163,7 @@ impl AtomicMint {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let recipient =
             DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
@@ -186,7 +188,7 @@ impl AtomicMint {
     pub(crate) fn propose_burn<'a>(
         program_id: &Pubkey,
         system_program: &AccountInfo<'a>,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_proposer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
@@ -215,7 +217,7 @@ impl AtomicMint {
         }
 
         req_id.checked_created_time()?;
-        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         if !data_account_proposed_burn.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
@@ -238,7 +240,7 @@ impl AtomicMint {
         let amount = req_id.get_checked_amount(decimal)?;
         invoke_signed(
             &transfer(
-                system_account_token_program.key,
+                token_program.key,
                 token_account_proposer.key,
                 token_account_contract.key,
                 account_proposer.key,
@@ -263,7 +265,7 @@ impl AtomicMint {
 
     pub(crate) fn execute_burn<'a>(
         program_id: &Pubkey,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
@@ -275,7 +277,7 @@ impl AtomicMint {
         executors: &Vec<EthAddress>,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -284,7 +286,7 @@ impl AtomicMint {
 
         // Check signatures
         let message = req_id.msg_from_req_signing_message();
-        SignatureUtils::check_multi_signatures(
+        SignatureUtils::assert_multisig_valid(
             data_account_executors,
             &message,
             signatures,
@@ -310,7 +312,7 @@ impl AtomicMint {
         }
         invoke_signed(
             &burn(
-                system_account_token_program.key,
+                token_program.key,
                 token_account_contract.key,
                 token_mint.key,
                 account_contract_signer.key,
@@ -335,7 +337,7 @@ impl AtomicMint {
 
     pub(crate) fn cancel_burn<'a>(
         program_id: &Pubkey,
-        system_account_token_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_contract_signer: &AccountInfo<'a>,
         token_account_contract: &AccountInfo<'a>,
         token_account_proposer: &AccountInfo<'a>,
@@ -345,7 +347,7 @@ impl AtomicMint {
         req_id: &ReqId,
     ) -> ProgramResult {
         // Check conditions
-        Self::check_is_mint_contract(data_account_basic_storage)?;
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let proposer =
             DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
@@ -367,7 +369,7 @@ impl AtomicMint {
         }
         invoke_signed(
             &transfer(
-                system_account_token_program.key,
+                token_program.key,
                 token_account_contract.key,
                 token_account_proposer.key,
                 account_contract_signer.key,
