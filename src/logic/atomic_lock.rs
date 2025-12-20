@@ -1,15 +1,13 @@
 use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg,
-    program::invoke_signed, pubkey::Pubkey, sysvar::Sysvar,
-    program_error::ProgramError,
+    program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
-use spl_token::instruction::transfer;
 use std::mem::size_of;
 
 use crate::{
     constants::{Constants, EthAddress},
     error::FreeTunnelError,
-    logic::{permissions::Permissions, req_helpers::ReqId},
+    logic::{permissions::Permissions, req_helpers::ReqId, token_ops},
     state::{BasicStorage, ProposedLock, ProposedUnlock},
     utils::{DataAccountUtils, SignatureUtils},
 };
@@ -75,21 +73,12 @@ impl AtomicLock {
         )?;
 
         // Deposit token
-        invoke_signed(
-            &transfer(
-                token_program.key,
-                token_account_proposer.key,
-                token_account_contract.key,
-                account_proposer.key,
-                &[],
-                amount,
-            )?,
-            &[
-                token_account_proposer.clone(),
-                token_account_contract.clone(),
-                account_proposer.clone(),
-            ],
-            &[],
+        token_ops::transfer_to_contract(
+            token_program,
+            token_account_contract,
+            token_account_proposer,
+            account_proposer,
+            amount,
         )?;
 
         msg!(
@@ -179,26 +168,13 @@ impl AtomicLock {
         DataAccountUtils::close_account(program_id, data_account_proposed_lock, account_refund)?;
 
         // Refund token
-        let (expected_contract_pubkey, bump_seed) =
-            Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
-        if expected_contract_pubkey != *account_contract_signer.key {
-            return Err(FreeTunnelError::ContractSignerMismatch.into());
-        }
-        invoke_signed(
-            &transfer(
-                token_program.key,
-                token_account_contract.key,
-                token_account_proposer.key,
-                account_contract_signer.key,
-                &[],
-                amount,
-            )?,
-            &[
-                token_account_contract.clone(),
-                token_account_proposer.clone(),
-                account_contract_signer.clone(),
-            ],
-            &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]],
+        token_ops::transfer_from_contract(
+            program_id,
+            token_program,
+            account_contract_signer,
+            token_account_contract,
+            token_account_proposer,
+            amount,
         )?;
 
         msg!(
@@ -301,26 +277,13 @@ impl AtomicLock {
         let (_, decimal) =
             req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
         let amount = req_id.get_checked_amount(decimal)?;
-        let (expected_contract_pubkey, bump_seed) =
-            Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
-        if expected_contract_pubkey != *account_contract_signer.key {
-            return Err(FreeTunnelError::ContractSignerMismatch.into());
-        }
-        invoke_signed(
-            &transfer(
-                token_program.key,
-                token_account_contract.key,
-                token_account_recipient.key,
-                account_contract_signer.key,
-                &[],
-                amount,
-            )?,
-            &[
-                token_account_contract.clone(),
-                token_account_recipient.clone(),
-                account_contract_signer.clone(),
-            ],
-            &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]],
+        token_ops::transfer_from_contract(
+            program_id,
+            token_program,
+            account_contract_signer,
+            token_account_contract,
+            token_account_recipient,
+            amount,
         )?;
 
         msg!(

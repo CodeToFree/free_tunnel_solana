@@ -17,6 +17,7 @@ pub mod logic {
     pub mod atomic_mint;
     pub mod permissions;
     pub mod req_helpers;
+    pub mod token_ops;
 }
 
 #[cfg(test)]
