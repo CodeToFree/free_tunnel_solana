@@ -1497,6 +1497,7 @@ dependencies = [
  "solana-program",
  "solana-program-test",
  "solana-sdk",
+ "solana-sdk-ids",
  "solana-system-interface",
  "spl-token",
  "tokio",

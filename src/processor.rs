@@ -4,8 +4,8 @@ use solana_program::{
     msg,
     program_pack::Pack,
     pubkey::Pubkey,
-    system_program,
 };
+use solana_sdk_ids;
 
 use spl_token::state::Mint;
 
@@ -526,8 +526,8 @@ impl Processor {
         }
     }
 
-    fn assert_system_program(system_program_account: &AccountInfo) -> ProgramResult {
-        if system_program_account.key != &system_program::ID {
+    fn assert_system_program(system_program: &AccountInfo) -> ProgramResult {
+        if system_program.key != &solana_sdk_ids::system_program::ID {
             Err(FreeTunnelError::InvalidSystemProgram.into())
         } else {
             Ok(())

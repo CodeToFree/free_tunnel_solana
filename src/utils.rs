@@ -10,9 +10,9 @@ use solana_program::{
     program_error::ProgramError,
     pubkey::Pubkey,
     secp256k1_recover::secp256k1_recover,
-    system_program,
     sysvar::{rent::Rent, Sysvar},
 };
+use solana_sdk_ids;
 use solana_system_interface::instruction::create_account;
 
 use crate::{
@@ -286,8 +286,8 @@ impl DataAccountUtils {
         **refund_account.lamports.borrow_mut() = new_refund_lamports;
         **data_account.lamports.borrow_mut() = 0;
 
-        data_account.realloc(0, false)?;
-        data_account.assign(&system_program::ID);
+        data_account.resize(0)?;
+        data_account.assign(&solana_sdk_ids::system_program::ID);
         Ok(())
     }
 }
