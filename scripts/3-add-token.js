@@ -110,7 +110,7 @@ async function main() {
       { pubkey: admin.publicKey, isSigner: true, isWritable: false },
       // 1. data_account_basic_storage
       { pubkey: basicStoragePda, isSigner: false, isWritable: true },
-      // 2. account_token_mint
+      // 2. token_mint
       { pubkey: TOKEN_MINT, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,

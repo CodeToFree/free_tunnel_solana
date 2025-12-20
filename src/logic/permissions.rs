@@ -1,5 +1,5 @@
 use solana_program::{
-    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, pubkey::Pubkey,
+    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, msg, pubkey::Pubkey,
     sysvar::Sysvar,
 };
 
@@ -20,9 +20,9 @@ impl Permissions {
         let basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if &basic_storage.admin != account_admin.key {
-            Err(FreeTunnelError::NotAdmin.into())
+            Err(FreeTunnelError::RequireAdminSigner.into())
         } else if !account_admin.is_signer {
-            Err(FreeTunnelError::AdminNotSigner.into())
+            Err(FreeTunnelError::RequireAdminSigner.into())
         } else {
             Ok(())
         }
@@ -31,13 +31,14 @@ impl Permissions {
     pub(crate) fn assert_only_proposer(
         data_account_basic_storage: &AccountInfo,
         account_proposer: &AccountInfo,
+        check_signer: bool,
     ) -> ProgramResult {
         let basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if !basic_storage.proposers.contains(account_proposer.key) {
-            Err(FreeTunnelError::NotProposer.into())
-        } else if !account_proposer.is_signer {
-            Err(FreeTunnelError::ProposerNotSigner.into())
+            Err(FreeTunnelError::RequireProposerSigner.into())
+        } else if check_signer && !account_proposer.is_signer {
+            Err(FreeTunnelError::RequireProposerSigner.into())
         } else {
             Ok(())
         }
@@ -55,7 +56,10 @@ impl Permissions {
             Err(FreeTunnelError::AlreadyProposer.into())
         } else {
             basic_storage.proposers.push(proposer.clone());
-            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+
+            msg!("ProposerAdded: {}", proposer);
+            Ok(())
         }
     }
 
@@ -71,7 +75,10 @@ impl Permissions {
             Err(FreeTunnelError::NotExistingProposer.into())
         } else {
             basic_storage.proposers.retain(|p| p != proposer);
-            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+
+            msg!("ProposerRemoved: {}", proposer);
+            Ok(())
         }
     }
 
@@ -117,7 +124,16 @@ impl Permissions {
                 inactive_after: 0,
                 executors: executors.clone(),
             },
-            )
+            )?;
+
+            msg!(
+                "ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}",
+                exe_index,
+                threshold,
+                1,
+                executors.len()
+            );
+            Ok(())
         }
     }
 
@@ -141,10 +157,10 @@ impl Permissions {
         if threshold > new_executors.len() as u64 {
             return Err(FreeTunnelError::NotMeetThreshold.into());
         }
-        if (active_since as i64) < now + 36 * 3600 {
+        if (active_since as i64) <= now + 36 * 3600 {
             return Err(FreeTunnelError::ActiveSinceShouldAfter36h.into());
         }
-        if (active_since as i64) > now + 120 * 3600 {
+        if (active_since as i64) >= now + 120 * 3600 {
             return Err(FreeTunnelError::ActiveSinceShouldWithin5d.into());
         }
         SignatureUtils::check_executors_not_duplicated(new_executors)?;
@@ -202,7 +218,16 @@ impl Permissions {
                     inactive_after: 0,
                     executors: new_executors.clone(),
                 },
-            )
+            )?;
+
+            msg!(
+                "ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}",
+                new_index,
+                threshold,
+                active_since,
+                new_executors.len()
+            );
+            Ok(())
         } else {
             let ExecutorsInfo {
                 index: _,
@@ -226,7 +251,16 @@ impl Permissions {
                     inactive_after: 0,
                     executors: new_executors.clone(),
                 },
-            )
+            )?;
+
+            msg!(
+                "ExecutorsUpdated: index={}, threshold={}, active_since={}, executors_len={}",
+                new_index,
+                threshold,
+                active_since,
+                new_executors.len()
+            );
+            Ok(())
         }
     }
 }

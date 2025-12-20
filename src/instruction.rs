@@ -6,8 +6,7 @@ use crate::{constants::EthAddress, logic::req_helpers::ReqId};
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum FreeTunnelInstruction {
     // The admin(deployer) must call this init function first
-    /// [0]        
-    /// [0]        
+    /// [0]
     /// 0. system_program: system program account, `11111111111111111111111111111111`
     /// 1. account_admin: the admin account, should be signer and payer
     /// 2. data_account_basic_storage: data account for storing basic storage (includes tokens, decimals, locked_balance, and proposers)
@@ -50,7 +49,7 @@ pub enum FreeTunnelInstruction {
     /// [5]
     /// 0. account_admin
     /// 1. data_account_basic_storage
-    /// 2. account_token_mint: the token mint account
+    /// 2. token_mint: the token mint account
     AddToken {
         token_index: u8,
     },
@@ -74,7 +73,7 @@ pub enum FreeTunnelInstruction {
     /// 3. data_account_basic_storage
     /// 4. data_account_proposed_mint
     /// 5. data_account_executors
-    /// 6. account_token_mint: token mint account (token contract address)
+    /// 6. token_mint: token mint account (token contract address)
     /// 7. account_multisig_owner: multisig owner account
     ExecuteMint {
         req_id: ReqId,
@@ -86,6 +85,7 @@ pub enum FreeTunnelInstruction {
     /// [9]
     /// 0. data_account_basic_storage
     /// 1. data_account_proposed_mint
+    /// 2. account_refund: refund account for closing PDA
     CancelMint { req_id: ReqId },
 
     /// [10]
@@ -105,7 +105,7 @@ pub enum FreeTunnelInstruction {
     /// 3. data_account_basic_storage
     /// 4. data_account_proposed_burn
     /// 5. data_account_executors
-    /// 6. account_token_mint
+    /// 6. token_mint
     ExecuteBurn {
         req_id: ReqId,
         signatures: Vec<[u8; 64]>,
@@ -120,6 +120,7 @@ pub enum FreeTunnelInstruction {
     /// 3. token_account_proposer
     /// 4. data_account_basic_storage
     /// 5. data_account_proposed_burn
+    /// 6. account_refund: refund account for closing PDA
     CancelBurn { req_id: ReqId },
 
     /// [13]
@@ -150,6 +151,7 @@ pub enum FreeTunnelInstruction {
     /// 3. token_account_proposer
     /// 4. data_account_basic_storage
     /// 5. data_account_proposed_lock
+    /// 6. account_refund: refund account for closing PDA
     CancelLock { req_id: ReqId },
 
     /// [16]
@@ -177,6 +179,7 @@ pub enum FreeTunnelInstruction {
     /// [18]
     /// 0. data_account_basic_storage
     /// 1. data_account_proposed_unlock
+    /// 2. account_refund: refund account for closing PDA
     CancelUnlock { req_id: ReqId },
 }
 

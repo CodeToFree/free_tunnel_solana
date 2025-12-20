@@ -3,6 +3,7 @@ use solana_program::{
     account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult,
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
+use spl_token::state::{Account as TokenAccount, GenericTokenAccount};
 
 use crate::error::FreeTunnelError;
 use crate::state::BasicStorage;
@@ -36,9 +37,9 @@ impl ReqId {
     pub fn checked_created_time(&self) -> Result<u64, ProgramError> {
         let time = self.created_time();
         let now = Clock::get()?.unix_timestamp;
-        if ((time + Constants::PROPOSE_PERIOD) as i64) < now {
+        if ((time + Constants::PROPOSE_PERIOD) as i64) <= now {
             Err(FreeTunnelError::CreatedTimeTooEarly.into())
-        } else if (time as i64) > now + 60 {
+        } else if (time as i64) >= now + 60 {
             Err(FreeTunnelError::CreatedTimeTooLate.into())
         } else {
             Ok(time)
@@ -53,19 +54,41 @@ impl ReqId {
         self.data[7]
     }
 
-    pub fn checked_token_index_pubkey_decimal(
+    pub fn get_checked_token<'a>(
         &self,
-        data_account_basic_storage: &AccountInfo,
-    ) -> Result<(u8, Pubkey, u8), ProgramError> {
+        data_account_basic_storage: &AccountInfo<'a>,
+        token_account: Option<&AccountInfo<'a>>,
+    ) -> Result<(u8, u8), ProgramError> {
         let BasicStorage {
             tokens, decimals, ..
         } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         let token_index = self.token_index();
-        let token_pubkey = tokens[token_index];
-        if token_pubkey == Pubkey::default() {
+        let token_pubkey = tokens
+            .get(token_index)
+            .ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+        let decimal = decimals
+            .get(token_index)
+            .ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+        if *token_pubkey == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
-            Ok((token_index, token_pubkey, decimals[token_index]))
+            if let Some(token_account) = token_account {
+                if token_account.owner != &spl_token::id() {
+                    return Err(FreeTunnelError::InvalidTokenAccount.into());
+                }
+                let token_account_data = token_account.data.borrow();
+                match TokenAccount::valid_account_data(&token_account_data) {
+                    true => {
+                        let token_mint =
+                            TokenAccount::unpack_account_mint_unchecked(&token_account_data);
+                        if *token_pubkey != *token_mint {
+                            return Err(FreeTunnelError::TokenMismatch.into());
+                        }
+                    }
+                    false => return Err(FreeTunnelError::InvalidTokenAccount.into()),
+                }
+            }
+            Ok((token_index, *decimal))
         }
     }
 
@@ -73,24 +96,39 @@ impl ReqId {
         u64::from_be_bytes(self.data[8..16].try_into().unwrap())
     }
 
-    pub fn checked_amount(
-        &self,
-        data_account_basic_storage: &AccountInfo,
-    ) -> Result<u64, ProgramError> {
-        let amount = self.raw_amount();
+    pub fn get_checked_amount(&self, decimal: u8) -> Result<u64, ProgramError> {
+        let mut amount = self.raw_amount();
         if amount == 0 {
             Err(FreeTunnelError::AmountCannotBeZero.into())
         } else {
-            let (_, _, decimal) =
-                self.checked_token_index_pubkey_decimal(data_account_basic_storage)?;
             if decimal > 6 {
-                Ok(amount * 10u64.pow(decimal as u32 - 6))
+                let factor = Self::checked_pow10((decimal - 6) as u32)?;
+                amount = amount
+                    .checked_mul(factor)
+                    .ok_or(FreeTunnelError::ArithmeticOverflow)?;
+                Ok(amount)
             } else if decimal < 6 {
-                Ok(amount / 10u64.pow(6 - decimal as u32))
+                let factor = Self::checked_pow10((6 - decimal) as u32)?;
+                amount /= factor;
+                if amount == 0 {
+                    Err(FreeTunnelError::AmountCannotBeZero.into())
+                } else {
+                    Ok(amount)
+                }
             } else {
                 Ok(amount)
             }
         }
+    }
+
+    fn checked_pow10(exp: u32) -> Result<u64, ProgramError> {
+        let mut value = 1u64;
+        for _ in 0..exp {
+            value = value
+                .checked_mul(10)
+                .ok_or(FreeTunnelError::ArithmeticOverflow)?;
+        }
+        Ok(value)
     }
 
     pub fn msg_from_req_signing_message(&self) -> Vec<u8> {
@@ -134,17 +172,17 @@ impl ReqId {
         }
     }
 
-    pub fn assert_from_chain_only(&self) -> ProgramResult {
+    pub fn assert_mint_opposite_side(&self) -> ProgramResult {
         if self.data[16] != Constants::HUB_ID {
-            Err(FreeTunnelError::NotFromCurrentChain.into())
+            Err(FreeTunnelError::NotMintOppositeSide.into())
         } else {
             Ok(())
         }
     }
 
-    pub fn assert_to_chain_only(&self) -> ProgramResult {
+    pub fn assert_mint_side(&self) -> ProgramResult {
         if self.data[17] != Constants::HUB_ID {
-            Err(FreeTunnelError::NotToCurrentChain.into())
+            Err(FreeTunnelError::NotMintSide.into())
         } else {
             Ok(())
         }

@@ -157,7 +157,7 @@ async function main() {
       { pubkey: currentExecutorsPda, isSigner: false, isWritable: false },
       // 6. data_account_next_executors
       { pubkey: nextExecutorsPda, isSigner: false, isWritable: false },
-      // 7. account_token_mint
+      // 7. token_mint
       { pubkey: tokenMint, isSigner: false, isWritable: true },
       // 8. account_multisig_owner
       { pubkey: multisigAddress, isSigner: false, isWritable: false },

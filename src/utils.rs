@@ -10,6 +10,7 @@ use solana_program::{
     program_error::ProgramError,
     pubkey::Pubkey,
     secp256k1_recover::secp256k1_recover,
+    system_program,
     sysvar::{rent::Rent, Sysvar},
 };
 use solana_system_interface::instruction::create_account;
@@ -122,7 +123,7 @@ impl SignatureUtils {
 
         // Check timestamp for current index
         let now = Clock::get()?.unix_timestamp;
-        if now < (active_since as i64) {
+        if now <= (active_since as i64) {
             return Err(FreeTunnelError::ExecutorsNotYetActive.into());
         }
 
@@ -223,6 +224,8 @@ impl DataAccountUtils {
             Err(DataAccountError::PdaAccountMismatch.into())
         } else if !data_account.is_writable {
             Err(DataAccountError::PdaAccountNotWritable.into())
+        } else if !account_payer.is_signer {
+            Err(ProgramError::MissingRequiredSignature)
         } else if !data_account.data_is_empty() {
             Err(DataAccountError::PdaAccountAlreadyCreated.into())
         } else {
@@ -258,6 +261,33 @@ impl DataAccountUtils {
             .map_err(|_| ProgramError::InvalidAccountData)?;
         account_data[..4].copy_from_slice(&(buffer.len() as u32).to_le_bytes());
         account_data[4..4 + buffer.len()].copy_from_slice(&buffer);
+        Ok(())
+    }
+
+    pub fn close_account<'a>(
+        program_id: &Pubkey,
+        data_account: &AccountInfo<'a>,
+        refund_account: &AccountInfo<'a>,
+    ) -> ProgramResult {
+        Self::check_account_ownership(program_id, data_account)?;
+        if !data_account.is_writable {
+            return Err(DataAccountError::PdaAccountNotWritable.into());
+        }
+        if !refund_account.is_writable {
+            return Err(FreeTunnelError::RefundAccountNotWritable.into());
+        }
+
+        let refund_lamports = refund_account.lamports();
+        let data_lamports = data_account.lamports();
+        let new_refund_lamports = refund_lamports
+            .checked_add(data_lamports)
+            .ok_or(FreeTunnelError::ArithmeticOverflow)?;
+
+        **refund_account.lamports.borrow_mut() = new_refund_lamports;
+        **data_account.lamports.borrow_mut() = 0;
+
+        data_account.realloc(0, false)?;
+        data_account.assign(&system_program::ID);
         Ok(())
     }
 }

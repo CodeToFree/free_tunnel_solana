@@ -16,58 +16,61 @@ impl From<DataAccountError> for ProgramError {
 
 #[derive(Debug)]
 pub enum FreeTunnelError {
-    // Utils & Signature
-    DuplicatedExecutors = 301,
-    SignerCannotBeZeroAddress,
-    InvalidSignature,
-    ArrayLengthNotEqual,
-    NotMeetThreshold,
-    ExecutorsNotYetActive,
-    ExecutorsOfNextIndexIsActive,
-    NonExecutors,
+    // Solana-only account/token checks
+    InvalidSystemProgram = 0,
+    InvalidTokenProgram = 1,
+    InvalidTokenMint = 2,
+    InvalidTokenAccount = 3,
+    ContractSignerMismatch = 4,
+    ArithmeticOverflow = 5,
+    RequireSigner = 6,
 
-    // Req Helpers
-    CreatedTimeTooEarly = 401,
-    CreatedTimeTooLate,
-    TokenIndexOccupied,
-    TokenIndexCannotBeZero,
-    TokenIndexNonExistent,
-    TokenStillInUse,
-    AmountCannotBeZero,
-    NotFromCurrentChain,
-    NotToCurrentChain,
+    // Solana-only mint/lock checks
+    NotMintContract = 7,
+    NotLockContract = 8,
 
-    // Permissions
-    NotAdmin = 501,
-    NotProposer,
-    AlreadyProposer,
-    NotExistingProposer,
-    ExecutorsAlreadyInitialized,
-    ThresholdMustBeGreaterThanZero,
-    ActiveSinceShouldAfter36h,
-    ActiveSinceShouldWithin5d,
-    FailedToOverwriteExistingExecutors,
+    // Req Helpers (aligned with Aptos)
+    TokenIndexOccupied = 10,
+    TokenIndexCannotBeZero = 11,
+    TokenIndexNonExistent = 12,
+    NotMintSide = 14,
+    NotMintOppositeSide = 15,
+    CreatedTimeTooEarly = 16,
+    CreatedTimeTooLate = 17,
+    AmountCannotBeZero = 18,
+    TokenMismatch = 19,
 
-    // Atomic Lock & Mint
-    NotLockMint = 601,
-    NotBurnMint,
-    NotBurnUnlock,
-    EHubNotMintSide,
-    EHubNotMintOppositeSide,
-    InvalidAction,
-    InvalidReqId,
-    InvalidRecipient,
-    InvalidProposer,
-    InvalidTokenAccount,
-    TokenMismatch,
-    WaitUntilExpired,
-    ContractSignerMismatch,
-    NotMintContract,
-    NotLockContract,
+    // Permissions & Signature (aligned with Aptos)
+    RequireAdminSigner = 20,
+    RequireProposerSigner = 21,
+    AlreadyProposer = 22,
+    NotExistingProposer = 23,
+    ExecutorsAlreadyInitialized = 24,
+    ThresholdMustBeGreaterThanZero = 25,
+    ArrayLengthNotEqual = 26,
+    NotMeetThreshold = 27,
+    ExecutorsNotYetActive = 28,
+    ExecutorsOfNextIndexIsActive = 29,
+    DuplicatedExecutors = 30,
+    NonExecutors = 31,
+    SignerCannotBeZeroAddress = 32,
+    InvalidSignature = 34,
+    ActiveSinceShouldAfter36h = 35,
+    ActiveSinceShouldWithin5d = 36,
+    FailedToOverwriteExistingExecutors = 37,
 
-    // Signers
-    ProposerNotSigner = 701,
-    AdminNotSigner,
+    LockedBalanceMustBeZero = 40,
+    LockedBalanceInsufficient = 41,
+    RefundAccountNotWritable = 42,
+
+    // Mint/Lock (aligned with Aptos)
+    InvalidReqId = 50,
+    NotLockMint = 51,
+    NotBurnUnlock = 52,
+    NotBurnMint = 53,
+    InvalidProposer = 54,
+    InvalidRecipient = 55,
+    WaitUntilExpired = 56,
 }
 
 impl From<FreeTunnelError> for ProgramError {

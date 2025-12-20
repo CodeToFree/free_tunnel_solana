@@ -1,8 +1,10 @@
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    msg,
     program_pack::Pack,
     pubkey::Pubkey,
+    system_program,
 };
 
 use spl_token::state::Mint;
@@ -35,6 +37,7 @@ impl Processor {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
+                Self::assert_system_program(system_program)?;
 
                 // Check data account
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
@@ -90,7 +93,8 @@ impl Processor {
             }
             FreeTunnelInstruction::RemoveProposer { proposer } => {
                 let account_admin = next_account_info(accounts_iter)?;
-                let data_account_basic_storage = next_account_info(accounts_iter)?;DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
+                let data_account_basic_storage = next_account_info(accounts_iter)?;
+                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 Permissions::remove_proposer(account_admin, data_account_basic_storage, &proposer)
             }
             FreeTunnelInstruction::UpdateExecutors {
@@ -124,16 +128,17 @@ impl Processor {
             } => {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
-                let account_token_mint = next_account_info(accounts_iter)?;
+                let token_mint = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, &data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
-                
-                let mint_state = Mint::unpack(&account_token_mint.data.borrow())?;
+                Self::assert_token_mint_valid(token_mint)?;
+
+                let mint_state = Mint::unpack(&token_mint.data.borrow())?;
 
                 Self::process_add_token(
                     account_admin,
                     data_account_basic_storage,
                     token_index,
-                    account_token_mint.key,
+                    token_mint.key,
                     mint_state.decimals,
                 )
             }
@@ -152,6 +157,7 @@ impl Processor {
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                Self::assert_system_program(system_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
                 AtomicMint::propose_mint(
@@ -176,8 +182,10 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let account_token_mint = next_account_info(accounts_iter)?;
+                let token_mint = next_account_info(accounts_iter)?;
                 let account_multisig_owner = next_account_info(accounts_iter)?;
+                Self::assert_token_program(system_account_token_program)?;
+                Self::assert_token_mint_valid(token_mint)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
@@ -190,7 +198,7 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_proposed_mint,
                     data_account_executors,
-                    account_token_mint,
+                    token_mint,
                     account_multisig_owner,
                     &req_id,
                     &signatures,
@@ -200,8 +208,16 @@ impl Processor {
             FreeTunnelInstruction::CancelMint { req_id } => {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_mint = next_account_info(accounts_iter)?;
+                let account_refund = next_account_info(accounts_iter)?;
+                DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
-                AtomicMint::cancel_mint(data_account_basic_storage, data_account_proposed_mint, &req_id)
+                AtomicMint::cancel_mint(
+                    program_id,
+                    data_account_basic_storage,
+                    data_account_proposed_mint,
+                    account_refund,
+                    &req_id,
+                )
             }
             FreeTunnelInstruction::ProposeBurn { req_id } => {
                 let system_program = next_account_info(accounts_iter)?;
@@ -211,6 +227,8 @@ impl Processor {
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
+                Self::assert_system_program(system_program)?;
+                Self::assert_token_program(system_account_token_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
                 AtomicMint::propose_burn(
@@ -237,7 +255,9 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
-                let account_token_mint = next_account_info(accounts_iter)?;
+                let token_mint = next_account_info(accounts_iter)?;
+                Self::assert_token_program(system_account_token_program)?;
+                Self::assert_token_mint_valid(token_mint)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
@@ -250,7 +270,7 @@ impl Processor {
                     data_account_basic_storage,
                     data_account_proposed_burn,
                     data_account_executors,
-                    account_token_mint,
+                    token_mint,
                     &req_id,
                     &signatures,
                     &executors,
@@ -263,6 +283,8 @@ impl Processor {
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_burn = next_account_info(accounts_iter)?;
+                let account_refund = next_account_info(accounts_iter)?;
+                Self::assert_token_program(system_account_token_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
@@ -274,6 +296,7 @@ impl Processor {
                     token_account_proposer,
                     data_account_basic_storage,
                     data_account_proposed_burn,
+                    account_refund,
                     &req_id,
                 )
             }
@@ -285,6 +308,8 @@ impl Processor {
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
+                Self::assert_system_program(system_program)?;
+                Self::assert_token_program(system_account_token_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_lock, Constants::PREFIX_LOCK, &req_id.data)?;
                 AtomicLock::propose_lock(
@@ -328,6 +353,8 @@ impl Processor {
                 let token_account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_lock = next_account_info(accounts_iter)?;
+                let account_refund = next_account_info(accounts_iter)?;
+                Self::assert_token_program(system_account_token_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_lock, Constants::PREFIX_LOCK, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
@@ -339,6 +366,7 @@ impl Processor {
                     token_account_proposer,
                     data_account_basic_storage,
                     data_account_proposed_lock,
+                    account_refund,
                     &req_id,
                 )
             }
@@ -347,6 +375,7 @@ impl Processor {
                 let account_proposer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
+                Self::assert_system_program(system_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_unlock, Constants::PREFIX_UNLOCK, &req_id.data)?;
                 AtomicLock::propose_unlock(
@@ -372,6 +401,7 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
+                Self::assert_token_program(system_account_token_program)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_unlock, Constants::PREFIX_UNLOCK, &req_id.data)?;
                 DataAccountUtils::check_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
@@ -393,12 +423,14 @@ impl Processor {
             FreeTunnelInstruction::CancelUnlock { req_id } => {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_proposed_unlock = next_account_info(accounts_iter)?;
+                let account_refund = next_account_info(accounts_iter)?;
                 DataAccountUtils::check_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::check_account_match(program_id, data_account_proposed_unlock, Constants::PREFIX_UNLOCK, &req_id.data)?;
                 AtomicLock::cancel_unlock(
                     program_id,
                     data_account_basic_storage,
                     data_account_proposed_unlock,
+                    account_refund,
                     &req_id,
                 )
             }
@@ -416,8 +448,16 @@ impl Processor {
         // Update storage
         let mut basic_storage: BasicStorage =
             DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let prev_admin = basic_storage.admin;
         basic_storage.admin = *new_admin;
-        DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
+        DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+
+        msg!(
+            "AdminTransferred: prev_admin={}, new_admin={}",
+            prev_admin,
+            new_admin
+        );
+        Ok(())
     }
 
     fn process_add_token<'a>(
@@ -441,7 +481,15 @@ impl Processor {
             basic_storage.tokens.insert(token_index, *token_pubkey);
             basic_storage.decimals.insert(token_index, token_decimals);
             basic_storage.locked_balance.insert(token_index, 0);
-            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+
+            msg!(
+                "TokenAdded: token_index={}, token_mint={}, decimals={}",
+                token_index,
+                token_pubkey,
+                token_decimals
+            );
+            Ok(())
         }
     }
 
@@ -460,13 +508,45 @@ impl Processor {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
-        } else if basic_storage.locked_balance[token_index] != 0 {
-            Err(FreeTunnelError::TokenStillInUse.into())
+        } else if *basic_storage
+            .locked_balance
+            .get(token_index)
+            .ok_or(FreeTunnelError::TokenIndexNonExistent)?
+            != 0
+        {
+            Err(FreeTunnelError::LockedBalanceMustBeZero.into())
         } else {
             basic_storage.tokens.remove(token_index);
             basic_storage.decimals.remove(token_index);
             basic_storage.locked_balance.remove(token_index);
-            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)
+            DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
+
+            msg!("TokenRemoved: token_index={}", token_index);
+            Ok(())
+        }
+    }
+
+    fn assert_system_program(system_program_account: &AccountInfo) -> ProgramResult {
+        if system_program_account.key != &system_program::ID {
+            Err(FreeTunnelError::InvalidSystemProgram.into())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn assert_token_program(token_program_account: &AccountInfo) -> ProgramResult {
+        if token_program_account.key != &spl_token::id() {
+            Err(FreeTunnelError::InvalidTokenProgram.into())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn assert_token_mint_valid(token_mint: &AccountInfo) -> ProgramResult {
+        if token_mint.owner != &spl_token::id() {
+            Err(FreeTunnelError::InvalidTokenMint.into())
+        } else {
+            Ok(())
         }
     }
 
