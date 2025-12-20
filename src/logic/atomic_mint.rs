@@ -38,21 +38,24 @@ impl AtomicMint {
         recipient: &Pubkey,
     ) -> ProgramResult {
         // Check conditions
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
+        req_id.assert_mint_side()?;
         let specific_action = req_id.action() & 0x0f;
         if specific_action != 1 && specific_action != 3 {
             return Err(FreeTunnelError::NotLockMint.into());
         }
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer, true)?;
         req_id.checked_created_time()?;
-        req_id.assert_mint_side()?;
-
-        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         if !data_account_proposed_mint.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
         if *recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidRecipient.into());
         }
+
+        // Check amount & token index
+        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
+        req_id.get_checked_amount(decimal)?;
 
         // Write proposed-lock data
         DataAccountUtils::create_data_account(
@@ -65,10 +68,6 @@ impl AtomicMint {
             size_of::<ProposedMint>() + Constants::SIZE_LENGTH,
             ProposedMint { inner: *recipient },
         )?;
-
-        // Check amount & token index
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
-        req_id.get_checked_amount(decimal)?;
 
         msg!(
             "TokenMintProposed: req_id={}, recipient={}",
@@ -196,15 +195,8 @@ impl AtomicMint {
         data_account_proposed_burn: &AccountInfo<'a>,
         req_id: &ReqId,
     ) -> ProgramResult {
-        // Check signers
-        if !account_proposer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
-        }
-        if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidProposer.into());
-        }
-
         // Check conditions
+        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let specific_action = req_id.action() & 0x0f;
         match specific_action {
             2 => {
@@ -215,12 +207,22 @@ impl AtomicMint {
             }
             _ => return Err(FreeTunnelError::NotBurnUnlock.into()),
         }
-
+        // Check signers
+        if !account_proposer.is_signer {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
         req_id.checked_created_time()?;
-        Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         if !data_account_proposed_burn.data_is_empty() {
             return Err(FreeTunnelError::InvalidReqId.into());
         }
+        if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
+            return Err(FreeTunnelError::InvalidProposer.into());
+        }
+
+        // Check amount & token
+        let (_, decimal) =
+            req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
+        let amount = req_id.get_checked_amount(decimal)?;
 
         // Write proposed-burn data
         DataAccountUtils::create_data_account(
@@ -235,9 +237,6 @@ impl AtomicMint {
         )?;
 
         // Transfer assets to contract
-        let (_, decimal) =
-            req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
-        let amount = req_id.get_checked_amount(decimal)?;
         invoke_signed(
             &transfer(
                 token_program.key,
@@ -358,10 +357,15 @@ impl AtomicMint {
             return Err(FreeTunnelError::WaitUntilExpired.into());
         }
 
-        // Update locked-balance data
+        // Check amount & token
         let (_, decimal) =
             req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
         let amount = req_id.get_checked_amount(decimal)?;
+
+        Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
+        DataAccountUtils::close_account(program_id, data_account_proposed_burn, account_refund)?;
+
+        // Refund token
         let (expected_contract_pubkey, bump_seed) =
             Pubkey::find_program_address(&[Constants::CONTRACT_SIGNER], program_id);
         if expected_contract_pubkey != *account_contract_signer.key {
@@ -383,8 +387,6 @@ impl AtomicMint {
             ],
             &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]],
         )?;
-        Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
-        DataAccountUtils::close_account(program_id, data_account_proposed_burn, account_refund)?;
 
         msg!(
             "TokenBurnCancelled: req_id={}, proposer={}",
