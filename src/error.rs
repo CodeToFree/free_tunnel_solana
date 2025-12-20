@@ -64,13 +64,14 @@ pub enum FreeTunnelError {
     RefundAccountNotWritable = 42,
 
     // Mint/Lock (aligned with Aptos)
-    InvalidReqId = 50,
+    ReqIdOccupied = 50,
     NotLockMint = 51,
     NotBurnUnlock = 52,
     NotBurnMint = 53,
     InvalidProposer = 54,
     InvalidRecipient = 55,
     WaitUntilExpired = 56,
+    ReqIdExecuted = 57,
 }
 
 impl From<FreeTunnelError> for ProgramError {

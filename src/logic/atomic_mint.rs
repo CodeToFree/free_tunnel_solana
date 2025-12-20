@@ -41,7 +41,7 @@ impl AtomicMint {
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer, true)?;
         req_id.checked_created_time()?;
-        if !data_account_proposed_mint.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
+        if !data_account_proposed_mint.data_is_empty() { return Err(FreeTunnelError::ReqIdOccupied.into()); }
         if *recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidRecipient.into());
         }
@@ -83,7 +83,7 @@ impl AtomicMint {
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let recipient = DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let message = req_id.msg_from_req_signing_message();
@@ -124,7 +124,7 @@ impl AtomicMint {
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let recipient = DataAccountUtils::read_account_data::<ProposedMint>(data_account_proposed_mint)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let now = Clock::get()?.unix_timestamp;
@@ -158,7 +158,7 @@ impl AtomicMint {
 
         if !account_proposer.is_signer { return Err(ProgramError::MissingRequiredSignature); }
         req_id.checked_created_time()?;
-        if !data_account_proposed_burn.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
+        if !data_account_proposed_burn.data_is_empty() { return Err(FreeTunnelError::ReqIdOccupied.into()); }
         if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidProposer.into());
         }
@@ -202,7 +202,7 @@ impl AtomicMint {
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let proposer = DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let message = req_id.msg_from_req_signing_message();
@@ -244,7 +244,7 @@ impl AtomicMint {
         Self::assert_contract_mode_is_mint(data_account_basic_storage)?;
         let proposer = DataAccountUtils::read_account_data::<ProposedBurn>(data_account_proposed_burn)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let now = Clock::get()?.unix_timestamp;

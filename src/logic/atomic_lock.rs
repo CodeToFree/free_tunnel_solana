@@ -42,7 +42,7 @@ impl AtomicLock {
 
         if !account_proposer.is_signer { return Err(ProgramError::MissingRequiredSignature); }
         req_id.checked_created_time()?;
-        if !data_account_proposed_lock.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
+        if !data_account_proposed_lock.data_is_empty() { return Err(FreeTunnelError::ReqIdOccupied.into()); }
         if account_proposer.key == &Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidProposer.into());
         }
@@ -82,7 +82,7 @@ impl AtomicLock {
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let proposer = DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let message = req_id.msg_from_req_signing_message();
@@ -117,7 +117,7 @@ impl AtomicLock {
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let proposer = DataAccountUtils::read_account_data::<ProposedLock>(data_account_proposed_lock)?.inner;
         if proposer == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let now = Clock::get()?.unix_timestamp;
@@ -158,7 +158,7 @@ impl AtomicLock {
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_proposer, true)?;
         req_id.checked_created_time()?;
-        if !data_account_proposed_unlock.data_is_empty() { return Err(FreeTunnelError::InvalidReqId.into()); }
+        if !data_account_proposed_unlock.data_is_empty() { return Err(FreeTunnelError::ReqIdOccupied.into()); }
         if *recipient == Constants::EXECUTED_PLACEHOLDER {
             return Err(FreeTunnelError::InvalidRecipient.into());
         }
@@ -199,7 +199,9 @@ impl AtomicLock {
     ) -> ProgramResult {
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let recipient = DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?.inner;
-        if recipient == Constants::EXECUTED_PLACEHOLDER { return Err(FreeTunnelError::InvalidReqId.into()); }
+        if recipient == Constants::EXECUTED_PLACEHOLDER {
+            return Err(FreeTunnelError::ReqIdExecuted.into());
+        }
 
         let message = req_id.msg_from_req_signing_message();
         SignatureUtils::assert_multisig_valid(data_account_executors, &message, signatures, executors)?;
@@ -237,7 +239,7 @@ impl AtomicLock {
         Self::assert_contract_mode_is_lock(data_account_basic_storage)?;
         let recipient = DataAccountUtils::read_account_data::<ProposedUnlock>(data_account_proposed_unlock)?.inner;
         if recipient == Constants::EXECUTED_PLACEHOLDER {
-            return Err(FreeTunnelError::InvalidReqId.into());
+            return Err(FreeTunnelError::ReqIdExecuted.into());
         }
 
         let now = Clock::get()?.unix_timestamp;
