@@ -2,9 +2,25 @@ use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, program::invoke_signed,
     program_error::ProgramError, pubkey::Pubkey,
 };
-use spl_token::instruction::{burn, mint_to, transfer};
+use spl_token::instruction as spl_instruction;
+use spl_token_2022::instruction as spl_2022_instruction;
 
 use crate::{constants::Constants, error::FreeTunnelError};
+
+pub(crate) enum TokenProgramKind {
+    Token,
+    Token2022,
+}
+
+fn token_program_kind(token_program: &AccountInfo) -> Result<TokenProgramKind, ProgramError> {
+    if token_program.key == &spl_token::id() {
+        Ok(TokenProgramKind::Token)
+    } else if token_program.key == &spl_token_2022::id() {
+        Ok(TokenProgramKind::Token2022)
+    } else {
+        Err(FreeTunnelError::InvalidTokenProgram.into())
+    }
+}
 
 fn assert_contract_signer<'a>(
     program_id: &Pubkey,
@@ -25,8 +41,8 @@ pub(crate) fn transfer_to_contract<'a>(
     from_signer: &AccountInfo<'a>,
     amount: u64,
 ) -> ProgramResult {
-    invoke_signed(
-        &transfer(
+    let ix = match token_program_kind(token_program)? {
+        TokenProgramKind::Token => spl_instruction::transfer(
             token_program.key,
             from.key,
             contract.key,
@@ -34,13 +50,16 @@ pub(crate) fn transfer_to_contract<'a>(
             &[],
             amount,
         )?,
-        &[
-            from.clone(),
-            contract.clone(),
-            from_signer.clone(),
-        ],
-        &[],
-    )?;
+        TokenProgramKind::Token2022 => spl_2022_instruction::transfer(
+            token_program.key,
+            from.key,
+            contract.key,
+            from_signer.key,
+            &[],
+            amount,
+        )?,
+    };
+    invoke_signed(&ix, &[from.clone(), contract.clone(), from_signer.clone()], &[])?;
     Ok(())
 }
 
@@ -53,8 +72,8 @@ pub(crate) fn transfer_from_contract<'a>(
     amount: u64,
 ) -> ProgramResult {
     let bump_seed = assert_contract_signer(program_id, contract_signer)?;
-    invoke_signed(
-        &transfer(
+    let ix = match token_program_kind(token_program)? {
+        TokenProgramKind::Token => spl_instruction::transfer(
             token_program.key,
             contract.key,
             recipient.key,
@@ -62,13 +81,16 @@ pub(crate) fn transfer_from_contract<'a>(
             &[],
             amount,
         )?,
-        &[
-            contract.clone(),
-            recipient.clone(),
-            contract_signer.clone(),
-        ],
-        &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]],
-    )?;
+        TokenProgramKind::Token2022 => spl_2022_instruction::transfer(
+            token_program.key,
+            contract.key,
+            recipient.key,
+            contract_signer.key,
+            &[],
+            amount,
+        )?,
+    };
+    invoke_signed(&ix, &[contract.clone(), recipient.clone(), contract_signer.clone()], &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]])?;
     Ok(())
 }
 
@@ -82,8 +104,8 @@ pub(crate) fn mint_token<'a>(
     amount: u64,
 ) -> ProgramResult {
     let bump_seed = assert_contract_signer(program_id, contract_signer)?;
-    invoke_signed(
-        &mint_to(
+    let ix = match token_program_kind(token_program)? {
+        TokenProgramKind::Token => spl_instruction::mint_to(
             token_program.key,
             token_mint.key,
             recipient.key,
@@ -91,6 +113,17 @@ pub(crate) fn mint_token<'a>(
             &[contract_signer.key],
             amount,
         )?,
+        TokenProgramKind::Token2022 => spl_2022_instruction::mint_to(
+            token_program.key,
+            token_mint.key,
+            recipient.key,
+            multisig_owner.key,
+            &[contract_signer.key],
+            amount,
+        )?,
+    };
+    invoke_signed(
+        &ix,
         &[
             token_mint.clone(),
             recipient.clone(),
@@ -111,8 +144,8 @@ pub(crate) fn burn_token<'a>(
     amount: u64,
 ) -> ProgramResult {
     let bump_seed = assert_contract_signer(program_id, contract_signer)?;
-    invoke_signed(
-        &burn(
+    let ix = match token_program_kind(token_program)? {
+        TokenProgramKind::Token => spl_instruction::burn(
             token_program.key,
             contract.key,
             token_mint.key,
@@ -120,12 +153,15 @@ pub(crate) fn burn_token<'a>(
             &[],
             amount,
         )?,
-        &[
-            contract.clone(),
-            token_mint.clone(),
-            contract_signer.clone(),
-        ],
-        &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]],
-    )?;
+        TokenProgramKind::Token2022 => spl_2022_instruction::burn(
+            token_program.key,
+            contract.key,
+            token_mint.key,
+            contract_signer.key,
+            &[],
+            amount,
+        )?,
+    };
+    invoke_signed(&ix, &[contract.clone(), token_mint.clone(), contract_signer.clone()], &[&[Constants::CONTRACT_SIGNER, &[bump_seed]]])?;
     Ok(())
 }

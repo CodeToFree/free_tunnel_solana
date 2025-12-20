@@ -4,6 +4,10 @@ use solana_program::{
     program_error::ProgramError, pubkey::Pubkey, sysvar::Sysvar,
 };
 use spl_token::state::{Account as TokenAccount, GenericTokenAccount};
+use spl_token_2022::{
+    state::Account as Token2022Account,
+    generic_token_account::GenericTokenAccount as GenericToken2022Account,
+};
 
 use crate::error::FreeTunnelError;
 use crate::state::BasicStorage;
@@ -67,18 +71,29 @@ impl ReqId {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
             if let Some(token_account) = token_account {
-                if token_account.owner != &spl_token::id() {
-                    return Err(FreeTunnelError::InvalidTokenAccount.into());
-                }
                 let token_account_data = token_account.data.borrow();
-                match TokenAccount::valid_account_data(&token_account_data) {
-                    true => {
-                        let token_mint = TokenAccount::unpack_account_mint_unchecked(&token_account_data);
-                        if *token_pubkey != *token_mint {
-                            return Err(FreeTunnelError::TokenMismatch.into());
+                if token_account.owner == &spl_token::id() {
+                    match TokenAccount::valid_account_data(&token_account_data) {
+                        true => {
+                            let token_mint = TokenAccount::unpack_account_mint_unchecked(&token_account_data);
+                            if *token_pubkey != *token_mint {
+                                return Err(FreeTunnelError::TokenMismatch.into());
+                            }
                         }
+                        false => return Err(FreeTunnelError::InvalidTokenAccount.into()),
                     }
-                    false => return Err(FreeTunnelError::InvalidTokenAccount.into()),
+                } else if token_account.owner == &spl_token_2022::id() {
+                    match Token2022Account::valid_account_data(&token_account_data) {
+                        true => {
+                            let token_mint = Token2022Account::unpack_account_mint_unchecked(&token_account_data);
+                            if *token_pubkey != *token_mint {
+                                return Err(FreeTunnelError::TokenMismatch.into());
+                            }
+                        }
+                        false => return Err(FreeTunnelError::InvalidTokenAccount.into()),
+                    }
+                } else {
+                    return Err(FreeTunnelError::InvalidTokenAccount.into());
                 }
             }
             Ok((token_index, *decimal))

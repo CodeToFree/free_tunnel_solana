@@ -535,18 +535,18 @@ impl Processor {
     }
 
     fn assert_token_program(token_program: &AccountInfo) -> ProgramResult {
-        if token_program.key != &spl_token::id() {
-            Err(FreeTunnelError::InvalidTokenProgram.into())
-        } else {
+        if token_program.key == &spl_token::id() || token_program.key == &spl_token_2022::id() {
             Ok(())
+        } else {
+            Err(FreeTunnelError::InvalidTokenProgram.into())
         }
     }
 
     fn assert_token_mint_valid(token_mint: &AccountInfo) -> ProgramResult {
-        if token_mint.owner != &spl_token::id() {
-            Err(FreeTunnelError::InvalidTokenMint.into())
-        } else {
+        if token_mint.owner == &spl_token::id() || token_mint.owner == &spl_token_2022::id() {
             Ok(())
+        } else {
+            Err(FreeTunnelError::InvalidTokenMint.into())
         }
     }
 
