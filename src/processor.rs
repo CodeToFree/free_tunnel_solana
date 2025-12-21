@@ -8,11 +8,20 @@ use solana_program::{
 use solana_sdk_ids;
 
 use spl_token::state::Mint;
+use spl_token_2022::state::Mint as Token2022Mint;
 
 use crate::{
-    constants::Constants, error::FreeTunnelError, instruction::FreeTunnelInstruction, logic::{
-        atomic_lock::AtomicLock, atomic_mint::AtomicMint, permissions::Permissions,
-    }, state::{BasicStorage, SparseArray}, utils::DataAccountUtils
+    constants::Constants,
+    error::FreeTunnelError,
+    instruction::FreeTunnelInstruction,
+    logic::{
+        atomic_lock::AtomicLock,
+        atomic_mint::AtomicMint,
+        permissions::Permissions,
+        token_ops,
+    },
+    state::{BasicStorage, SparseArray},
+    utils::DataAccountUtils,
 };
 
 pub struct Processor;
@@ -38,8 +47,6 @@ impl Processor {
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
                 Self::assert_system_program(system_program)?;
-
-                // Check data account
                 DataAccountUtils::assert_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::assert_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
 
@@ -55,11 +62,12 @@ impl Processor {
                     BasicStorage {
                         mint_or_lock: is_mint_contract,
                         admin: *account_admin.key,
+                        proposers: Vec::new(),
                         executors_group_length: 0,
                         tokens: SparseArray::default(),
+                        vaults: SparseArray::default(),
                         decimals: SparseArray::default(),
                         locked_balance: SparseArray::default(),
-                        proposers: Vec::new(),
                     },
                 )?;
 
@@ -126,20 +134,30 @@ impl Processor {
             FreeTunnelInstruction::AddToken {
                 token_index,
             } => {
+                let system_program = next_account_info(accounts_iter)?;
+                let token_program = next_account_info(accounts_iter)?;
                 let account_admin = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
+                let account_contract_signer = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let token_mint = next_account_info(accounts_iter)?;
+                let rent_sysvar = next_account_info(accounts_iter)?;
+                Self::assert_system_program(system_program)?;
+                Self::assert_token_program(token_program)?;
+                Self::assert_token_mint_valid(token_mint, token_program)?;
                 DataAccountUtils::assert_account_match(program_id, &data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
-                Self::assert_token_mint_valid(token_mint)?;
-
-                let mint_state = Mint::unpack(&token_mint.data.borrow())?;
+                DataAccountUtils::assert_account_match(program_id, account_contract_signer, Constants::CONTRACT_SIGNER, b"")?;
 
                 Self::process_add_token(
+                    system_program,
+                    token_program,
                     account_admin,
+                    token_account_contract,
+                    account_contract_signer,
                     data_account_basic_storage,
+                    token_mint,
+                    rent_sysvar,
                     token_index,
-                    token_mint.key,
-                    mint_state.decimals,
                 )
             }
             FreeTunnelInstruction::RemoveToken { token_index } => {
@@ -185,7 +203,7 @@ impl Processor {
                 let token_mint = next_account_info(accounts_iter)?;
                 let account_multisig_owner = next_account_info(accounts_iter)?;
                 Self::assert_token_program(token_program)?;
-                Self::assert_token_mint_valid(token_mint)?;
+                Self::assert_token_mint_valid(token_mint, token_program)?;
                 DataAccountUtils::assert_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::assert_account_match(program_id, data_account_proposed_mint, Constants::PREFIX_MINT, &req_id.data)?;
                 DataAccountUtils::assert_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
@@ -257,7 +275,7 @@ impl Processor {
                 let data_account_executors = next_account_info(accounts_iter)?;
                 let token_mint = next_account_info(accounts_iter)?;
                 Self::assert_token_program(token_program)?;
-                Self::assert_token_mint_valid(token_mint)?;
+                Self::assert_token_mint_valid(token_mint, token_program)?;
                 DataAccountUtils::assert_account_match(program_id, data_account_basic_storage, Constants::BASIC_STORAGE, b"")?;
                 DataAccountUtils::assert_account_match(program_id, data_account_proposed_burn, Constants::PREFIX_BURN, &req_id.data)?;
                 DataAccountUtils::assert_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
@@ -461,33 +479,54 @@ impl Processor {
     }
 
     fn process_add_token<'a>(
+        system_program: &AccountInfo<'a>,
+        token_program: &AccountInfo<'a>,
         account_admin: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
+        account_contract_signer: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
+        token_mint: &AccountInfo<'a>,
+        rent_sysvar: &AccountInfo<'a>,
         token_index: u8,
-        token_pubkey: &Pubkey,
-        token_decimals: u8,
     ) -> ProgramResult {
-        // Check permissions
         Permissions::assert_only_admin(data_account_basic_storage, account_admin)?;
 
-        // Process
-        let mut basic_storage: BasicStorage =
-            DataAccountUtils::read_account_data(data_account_basic_storage)?;
+        let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if basic_storage.tokens.get(token_index) != Option::None {
             Err(FreeTunnelError::TokenIndexOccupied.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
         } else {
-            basic_storage.tokens.insert(token_index, *token_pubkey);
-            basic_storage.decimals.insert(token_index, token_decimals);
+            token_ops::create_token_account_contract(
+                system_program,
+                token_program,
+                account_admin,
+                token_account_contract,
+                account_contract_signer,
+                token_mint,
+                rent_sysvar,
+            )?;
+
+            let mint_data = token_mint.data.borrow();
+            let decimals = if token_program.key == &spl_token::id() {
+                Mint::unpack(&mint_data)?.decimals
+            } else if token_program.key == &spl_token_2022::id() {
+                Token2022Mint::unpack(&mint_data)?.decimals
+            } else {
+                return Err(FreeTunnelError::InvalidTokenProgram.into());
+            };
+
+            basic_storage.tokens.insert(token_index, *token_mint.key);
+            basic_storage.vaults.insert(token_index, *token_account_contract.key);
+            basic_storage.decimals.insert(token_index, decimals);
             basic_storage.locked_balance.insert(token_index, 0);
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
 
             msg!(
                 "TokenAdded: token_index={}, token_mint={}, decimals={}",
                 token_index,
-                token_pubkey,
-                token_decimals
+                token_mint.key,
+                decimals
             );
             Ok(())
         }
@@ -517,6 +556,7 @@ impl Processor {
             Err(FreeTunnelError::LockedBalanceMustBeZero.into())
         } else {
             basic_storage.tokens.remove(token_index);
+            basic_storage.vaults.remove(token_index);
             basic_storage.decimals.remove(token_index);
             basic_storage.locked_balance.remove(token_index);
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
@@ -542,8 +582,8 @@ impl Processor {
         }
     }
 
-    fn assert_token_mint_valid(token_mint: &AccountInfo) -> ProgramResult {
-        if token_mint.owner == &spl_token::id() || token_mint.owner == &spl_token_2022::id() {
+    fn assert_token_mint_valid(token_mint: &AccountInfo, token_program: &AccountInfo) -> ProgramResult {
+        if token_mint.owner == token_program.key {
             Ok(())
         } else {
             Err(FreeTunnelError::InvalidTokenMint.into())

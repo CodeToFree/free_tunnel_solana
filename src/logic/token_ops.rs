@@ -1,11 +1,20 @@
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, program::invoke_signed,
-    program_error::ProgramError, pubkey::Pubkey,
+    account_info::AccountInfo, entrypoint::ProgramResult, program::invoke,
+    program::invoke_signed, program_error::ProgramError, pubkey::Pubkey,
+};
+use spl_associated_token_account::{
+    get_associated_token_address_with_program_id,
+    instruction::create_associated_token_account_idempotent,
 };
 use spl_token::instruction as spl_instruction;
 use spl_token_2022::instruction as spl_2022_instruction;
 
-use crate::{constants::Constants, error::FreeTunnelError};
+use crate::{
+    constants::Constants,
+    error::FreeTunnelError,
+    state::BasicStorage,
+    utils::DataAccountUtils,
+};
 
 pub(crate) enum TokenProgramKind {
     Token,
@@ -32,6 +41,70 @@ fn assert_contract_signer<'a>(
         return Err(FreeTunnelError::ContractSignerMismatch.into());
     }
     Ok(bump_seed)
+}
+
+pub(crate) fn assert_is_ata(
+    token_program: &AccountInfo,
+    token_account: &AccountInfo,
+    owner_pubkey: &Pubkey,
+    mint_pubkey: &Pubkey,
+) -> ProgramResult {
+    let expected = get_associated_token_address_with_program_id(
+        owner_pubkey, 
+        mint_pubkey, 
+        token_program.key
+    );
+    if token_account.key != &expected {
+        return Err(FreeTunnelError::InvalidTokenAccount.into());
+    }
+    Ok(())
+}
+
+pub(crate) fn assert_is_contract_ata<'a>(
+    data_account_basic_storage: &AccountInfo<'a>,
+    token_index: u8,
+    token_account_contract: &AccountInfo<'a>,
+) -> ProgramResult {
+    let basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
+    let expected = basic_storage.vaults.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+    if token_account_contract.key != expected {
+        return Err(FreeTunnelError::InvalidTokenAccount.into());
+    }
+    Ok(())
+}
+
+pub(crate) fn create_token_account_contract<'a>(
+    system_program: &AccountInfo<'a>,
+    token_program: &AccountInfo<'a>,
+    payer: &AccountInfo<'a>,
+    token_account_contract: &AccountInfo<'a>,
+    account_contract_signer: &AccountInfo<'a>,
+    token_mint: &AccountInfo<'a>,
+    rent_sysvar: &AccountInfo<'a>,
+) -> Result<(), ProgramError> {
+    assert_is_ata(token_program, token_account_contract, account_contract_signer.key, token_mint.key)?;
+
+    let ix = create_associated_token_account_idempotent(
+        payer.key,
+        account_contract_signer.key,
+        token_mint.key,
+        token_program.key,
+    );
+
+    invoke(
+        &ix,
+        &[
+            system_program.clone(),
+            token_program.clone(),
+            payer.clone(),
+            token_account_contract.clone(),
+            account_contract_signer.clone(),
+            token_mint.clone(),
+            rent_sysvar.clone(),
+        ],
+    )?;
+
+    Ok(())
 }
 
 pub(crate) fn transfer_to_contract<'a>(

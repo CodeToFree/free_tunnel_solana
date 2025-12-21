@@ -47,9 +47,14 @@ pub enum FreeTunnelInstruction {
     },
 
     /// [5]
-    /// 0. account_admin
-    /// 1. data_account_basic_storage
-    /// 2. token_mint: the token mint account
+    /// 0. system_program: system program account
+    /// 1. token_program: token program account
+    /// 2. account_admin
+    /// 3. token_account_contract: contract ATA for this mint
+    /// 4. account_contract_signer: contract signer PDA
+    /// 5. data_account_basic_storage
+    /// 6. token_mint: the token mint account
+    /// 7. rent_sysvar: rent sysvar account
     AddToken {
         token_index: u8,
     },

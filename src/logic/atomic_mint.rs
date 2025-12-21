@@ -47,7 +47,7 @@ impl AtomicMint {
         }
 
         // Check amount & token index
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
+        let (_, decimal, _) = req_id.get_checked_token(data_account_basic_storage, None)?;
         req_id.get_checked_amount(decimal)?;
 
         // Write proposed-lock data
@@ -96,10 +96,14 @@ impl AtomicMint {
         )?;
 
         // Check token match
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_recipient))?;
+        let (_, decimal, mint_pubkey) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
+        if token_mint.key != &mint_pubkey {
+            return Err(FreeTunnelError::TokenMismatch.into());
+        }
 
         // Mint to recipient
+        token_ops::assert_is_ata(token_program, token_account_recipient, &recipient, &mint_pubkey)?;
         token_ops::mint_token(
             program_id,
             token_program,
@@ -164,7 +168,7 @@ impl AtomicMint {
         }
 
         // Check amount & token
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
+        let (token_index, decimal, _) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         // Write proposed-burn data
@@ -180,6 +184,7 @@ impl AtomicMint {
         )?;
 
         // Transfer assets to contract
+        token_ops::assert_is_contract_ata(data_account_basic_storage, token_index, token_account_contract)?;
         token_ops::transfer_to_contract(token_program, token_account_proposer, token_account_contract, account_proposer, amount)?;
 
         msg!("TokenBurnProposed: req_id={}, proposer={}", hex::encode(req_id.data), account_proposer.key);
@@ -215,14 +220,19 @@ impl AtomicMint {
         )?;
 
         // Burn token from contract
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (token_index, decimal, mint_pubkey) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
+        if token_mint.key != &mint_pubkey {
+            return Err(FreeTunnelError::TokenMismatch.into());
+        }
+
+        token_ops::assert_is_contract_ata(data_account_basic_storage, token_index, token_account_contract)?;
         token_ops::burn_token(
             program_id,
             token_program,
-            token_account_contract,
             token_mint,
             account_contract_signer,
+            token_account_contract,
             amount,
         )?;
 
@@ -251,13 +261,15 @@ impl AtomicMint {
         if now <= (req_id.created_time() + Constants::EXPIRE_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
 
         // Check amount & token
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (token_index, decimal, mint_pubkey) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
         DataAccountUtils::close_account(program_id, data_account_proposed_burn, account_refund)?;
 
         // Refund token
+        token_ops::assert_is_contract_ata(data_account_basic_storage, token_index, token_account_contract)?;
+        token_ops::assert_is_ata(token_program, token_account_proposer, &proposer, &mint_pubkey)?;
         token_ops::transfer_from_contract(
             program_id,
             token_program,

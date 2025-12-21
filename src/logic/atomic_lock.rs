@@ -48,7 +48,7 @@ impl AtomicLock {
         }
 
         // Check amount & token
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
+        let (token_index, decimal, _) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_proposer))?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         // Write proposed-lock data
@@ -64,6 +64,7 @@ impl AtomicLock {
         )?;
 
         // Deposit token
+        token_ops::assert_is_contract_ata(data_account_basic_storage, token_index, token_account_contract)?;
         token_ops::transfer_to_contract(token_program, token_account_proposer, token_account_contract, account_proposer, amount)?;
 
         msg!("TokenLockProposed: req_id={}, proposer={}", hex::encode(req_id.data), account_proposer.key);
@@ -95,7 +96,7 @@ impl AtomicLock {
         )?;
 
         // Update locked-balance data
-        let (token_index, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
+        let (token_index, decimal, _) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
         Self::update_locked_balance(data_account_basic_storage, token_index, amount, true)?;
 
@@ -123,13 +124,15 @@ impl AtomicLock {
         let now = Clock::get()?.unix_timestamp;
         if now <= (req_id.created_time() + Constants::EXPIRE_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
 
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (token_index, decimal, mint_pubkey) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
 
         Permissions::assert_only_proposer(data_account_basic_storage, account_refund, false)?;
         DataAccountUtils::close_account(program_id, data_account_proposed_lock, account_refund)?;
 
         // Refund token
+        token_ops::assert_is_contract_ata(data_account_basic_storage, token_index, token_account_contract)?;
+        token_ops::assert_is_ata(token_program, token_account_proposer, &proposer, &mint_pubkey)?;
         token_ops::transfer_from_contract(
             program_id,
             token_program,
@@ -164,7 +167,7 @@ impl AtomicLock {
         }
 
         // Check amount & token
-        let (token_index, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
+        let (token_index, decimal, _) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
         Self::update_locked_balance(data_account_basic_storage, token_index, amount, false)?;
 
@@ -213,9 +216,11 @@ impl AtomicLock {
         )?;
 
         // Unlock token to recipient
-        let (_, decimal) = req_id.get_checked_token(data_account_basic_storage, Some(token_account_contract))?;
+        let (token_index, decimal, mint_pubkey) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
 
+        token_ops::assert_is_contract_ata(data_account_basic_storage, token_index, token_account_contract)?;
+        token_ops::assert_is_ata(token_program, token_account_recipient, &recipient, &mint_pubkey)?;
         token_ops::transfer_from_contract(
             program_id,
             token_program,
@@ -246,7 +251,7 @@ impl AtomicLock {
         if now <= (req_id.created_time() + Constants::EXPIRE_EXTRA_PERIOD) as i64 { return Err(FreeTunnelError::WaitUntilExpired.into()); }
 
         // Update locked-balance data
-        let (token_index, decimal) = req_id.get_checked_token(data_account_basic_storage, None)?;
+        let (token_index, decimal, _) = req_id.get_checked_token(data_account_basic_storage, None)?;
         let amount = req_id.get_checked_amount(decimal)?;
         Self::update_locked_balance(data_account_basic_storage, token_index, amount, true)?;
 

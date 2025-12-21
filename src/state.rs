@@ -9,11 +9,12 @@ use crate::constants::EthAddress;
 pub struct BasicStorage {
     pub mint_or_lock: bool, // true for mint, false for lock
     pub admin: Pubkey,
+    pub proposers: Vec<Pubkey>, // support up to 256 proposers, structured as list
     pub executors_group_length: u64,
     pub tokens: SparseArray<Pubkey>, // support up to 10 more tokens, avoid stack overflow error
+    pub vaults: SparseArray<Pubkey>, // contract ATA per token
     pub decimals: SparseArray<u8>, // decimals of each token
     pub locked_balance: SparseArray<u64>, // locked balance of each token
-    pub proposers: Vec<Pubkey>, // support up to 256 proposers, structured as list
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]

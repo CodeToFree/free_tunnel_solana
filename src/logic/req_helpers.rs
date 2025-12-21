@@ -60,14 +60,14 @@ impl ReqId {
         &self,
         data_account_basic_storage: &AccountInfo<'a>,
         token_account: Option<&AccountInfo<'a>>,
-    ) -> Result<(u8, u8), ProgramError> {
+    ) -> Result<(u8, u8, Pubkey), ProgramError> {
         let BasicStorage {
             tokens, decimals, ..
         } = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         let token_index = self.token_index();
-        let token_pubkey = tokens.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+        let mint_pubkey = tokens.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
         let decimal = decimals.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
-        if *token_pubkey == Pubkey::default() {
+        if *mint_pubkey == Pubkey::default() {
             Err(FreeTunnelError::TokenIndexNonExistent.into())
         } else {
             if let Some(token_account) = token_account {
@@ -75,8 +75,8 @@ impl ReqId {
                 if token_account.owner == &spl_token::id() {
                     match TokenAccount::valid_account_data(&token_account_data) {
                         true => {
-                            let token_mint = TokenAccount::unpack_account_mint_unchecked(&token_account_data);
-                            if *token_pubkey != *token_mint {
+                            let expected = TokenAccount::unpack_account_mint_unchecked(&token_account_data);
+                            if *mint_pubkey != *expected {
                                 return Err(FreeTunnelError::TokenMismatch.into());
                             }
                         }
@@ -85,8 +85,8 @@ impl ReqId {
                 } else if token_account.owner == &spl_token_2022::id() {
                     match Token2022Account::valid_account_data(&token_account_data) {
                         true => {
-                            let token_mint = Token2022Account::unpack_account_mint_unchecked(&token_account_data);
-                            if *token_pubkey != *token_mint {
+                            let expected = Token2022Account::unpack_account_mint_unchecked(&token_account_data);
+                            if *mint_pubkey != *expected {
                                 return Err(FreeTunnelError::TokenMismatch.into());
                             }
                         }
@@ -96,7 +96,7 @@ impl ReqId {
                     return Err(FreeTunnelError::InvalidTokenAccount.into());
                 }
             }
-            Ok((token_index, *decimal))
+            Ok((token_index, *decimal, *mint_pubkey))
         }
     }
 
