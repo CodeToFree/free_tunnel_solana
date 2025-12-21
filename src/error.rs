@@ -24,10 +24,11 @@ pub enum FreeTunnelError {
     ContractSignerMismatch = 4,
     ArithmeticOverflow = 5,
     RequireSigner = 6,
+    StorageLimitReached = 7,
 
     // Solana-only mint/lock checks
-    NotMintContract = 7,
-    NotLockContract = 8,
+    NotMintContract = 8,
+    NotLockContract = 9,
 
     // Req Helpers (aligned with Aptos)
     TokenIndexOccupied = 10,

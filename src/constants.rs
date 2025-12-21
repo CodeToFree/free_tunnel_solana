@@ -4,6 +4,11 @@ pub struct Constants;
 pub type EthAddress = [u8; 20];
 
 impl Constants {
+    // Limits
+    pub const MAX_PROPOSERS: usize = 32;
+    pub const MAX_EXECUTORS: usize = 32;
+    pub const MAX_TOKENS: usize = 32;
+
     // Zero address and placeholder
     pub const ETH_ZERO_ADDRESS: EthAddress = [0; 20];
     pub const EXECUTED_PLACEHOLDER: Pubkey = Pubkey::new_from_array([0xed; 32]);
@@ -29,7 +34,13 @@ impl Constants {
 
     // Data account size
     pub const SIZE_LENGTH: usize = 4; // actual length for the data account (not capacity)
-    pub const SIZE_BASIC_STORAGE: usize = 1 + 32 + (32 * 32) + 8 + 32 * (32 + 32 + 1 + 8); // `mint_or_lock`, `admin`, `proposers`, `executors_group_length`, `tokens`, `vaults`, `decimals`, `locked_balance`, up to 32 tokens
-    pub const SIZE_EXECUTORS_STORAGE: usize = 8 + 8 + 8 + 8 + 20 * 64; // `index`, `threshold`, `active_since`, `inactive_after` and `executors`, up to 64 executors
+    pub const SIZE_BASIC_STORAGE: usize =
+        1 + 32 + (4 + 32 * Self::MAX_PROPOSERS) + 8
+        + (4 + Self::MAX_TOKENS * (1 + 32))
+        + (4 + Self::MAX_TOKENS * (1 + 32))
+        + (4 + Self::MAX_TOKENS * (1 + 1))
+        + (4 + Self::MAX_TOKENS * (1 + 8));
+    pub const SIZE_EXECUTORS_STORAGE: usize =
+        8 + 8 + 8 + 8 + (4 + 20 * Self::MAX_EXECUTORS);
     pub const SIZE_ADDRESS_STORAGE: usize = 32;
 }

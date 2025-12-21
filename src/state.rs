@@ -1,17 +1,20 @@
 use std::ops::{Index, IndexMut};
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use solana_program::pubkey::Pubkey;
+use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
-use crate::constants::EthAddress;
+use crate::{
+    constants::{Constants, EthAddress},
+    error::FreeTunnelError,
+};
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct BasicStorage {
     pub mint_or_lock: bool, // true for mint, false for lock
     pub admin: Pubkey,
-    pub proposers: Vec<Pubkey>, // support up to 256 proposers, structured as list
+    pub proposers: Vec<Pubkey>, // support up to MAX_PROPOSERS, structured as list
     pub executors_group_length: u64,
-    pub tokens: SparseArray<Pubkey>, // support up to 10 more tokens, avoid stack overflow error
+    pub tokens: SparseArray<Pubkey>, // support up MAX_TOKENS tokens
     pub vaults: SparseArray<Pubkey>, // contract ATA per token
     pub decimals: SparseArray<u8>, // decimals of each token
     pub locked_balance: SparseArray<u64>, // locked balance of each token
@@ -59,15 +62,18 @@ impl<Value> Default for SparseArray<Value> {
 }
 
 impl<Value> SparseArray<Value> {
-    pub fn insert(&mut self, id: u8, value: Value) -> Option<Value> {
+    pub fn insert(&mut self, id: u8, value: Value) -> Result<Option<Value>, ProgramError> {
         match self.inner.binary_search_by_key(&id, |&(k, _)| k) {
             Ok(index) => {
                 let old_value = std::mem::replace(&mut self.inner[index].1, value);
-                Some(old_value)
+                Ok(Some(old_value))
             }
             Err(index) => {
+                if self.inner.len() >= Constants::MAX_TOKENS {
+                    return Err(FreeTunnelError::StorageLimitReached.into());
+                }
                 self.inner.insert(index, (id, value));
-                None
+                Ok(None)
             }
         }
     }
@@ -91,6 +97,10 @@ impl<Value> SparseArray<Value> {
             Ok(index) => Some(&mut self.inner[index].1),
             Err(_) => None,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
     }
 }
 

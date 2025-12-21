@@ -48,6 +48,8 @@ impl Permissions {
         let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         if basic_storage.proposers.contains(&proposer) {
             Err(FreeTunnelError::AlreadyProposer.into())
+        } else if basic_storage.proposers.len() >= Constants::MAX_PROPOSERS {
+            Err(FreeTunnelError::StorageLimitReached.into())
         } else {
             basic_storage.proposers.push(proposer.clone());
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
@@ -86,7 +88,9 @@ impl Permissions {
         let mut basic_storage: BasicStorage = DataAccountUtils::read_account_data(data_account_basic_storage)?;
         Self::assert_only_admin(data_account_basic_storage, account_admin)?;
 
-        if threshold > executors.len() as u64 {
+        if executors.len() > Constants::MAX_EXECUTORS {
+            Err(FreeTunnelError::StorageLimitReached.into())
+        } else if threshold > executors.len() as u64 {
             Err(FreeTunnelError::NotMeetThreshold.into())
         } else if basic_storage.executors_group_length != 0 {
             Err(FreeTunnelError::ExecutorsAlreadyInitialized.into())
@@ -136,7 +140,9 @@ impl Permissions {
     ) -> ProgramResult {
         let now = Clock::get()?.unix_timestamp;
 
-        if threshold == 0 {
+        if new_executors.len() > Constants::MAX_EXECUTORS {
+            return Err(FreeTunnelError::StorageLimitReached.into());
+        } else if threshold == 0 {
             return Err(FreeTunnelError::ThresholdMustBeGreaterThanZero.into());
         } else if threshold > new_executors.len() as u64 {
             return Err(FreeTunnelError::NotMeetThreshold.into());

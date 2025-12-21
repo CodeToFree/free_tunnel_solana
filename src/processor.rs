@@ -501,6 +501,8 @@ impl Processor {
             Err(FreeTunnelError::TokenIndexOccupied.into())
         } else if token_index == 0 {
             Err(FreeTunnelError::TokenIndexCannotBeZero.into())
+        } else if basic_storage.tokens.len() >= Constants::MAX_TOKENS {
+            Err(FreeTunnelError::StorageLimitReached.into())
         } else {
             token_ops::create_token_account_contract(
                 system_program,
@@ -521,10 +523,10 @@ impl Processor {
                 return Err(FreeTunnelError::InvalidTokenProgram.into());
             };
 
-            basic_storage.tokens.insert(token_index, *token_mint.key);
-            basic_storage.vaults.insert(token_index, *token_account_contract.key);
-            basic_storage.decimals.insert(token_index, decimals);
-            basic_storage.locked_balance.insert(token_index, 0);
+            basic_storage.tokens.insert(token_index, *token_mint.key)?;
+            basic_storage.vaults.insert(token_index, *token_account_contract.key)?;
+            basic_storage.decimals.insert(token_index, decimals)?;
+            basic_storage.locked_balance.insert(token_index, 0)?;
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
 
             msg!(
