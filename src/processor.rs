@@ -113,6 +113,8 @@ impl Processor {
                 executors,
                 exe_index,
             } => {
+                let system_program = next_account_info(accounts_iter)?;
+                let account_payer: &AccountInfo<'_> = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
                 let data_account_executors = next_account_info(accounts_iter)?;
                 let data_account_new_executors = next_account_info(accounts_iter)?;
@@ -120,6 +122,9 @@ impl Processor {
                 DataAccountUtils::assert_account_match(program_id, data_account_executors, Constants::PREFIX_EXECUTORS, &exe_index.to_le_bytes())?;
                 DataAccountUtils::assert_account_match(program_id, data_account_new_executors, Constants::PREFIX_EXECUTORS, &(exe_index + 1).to_le_bytes())?;
                 Permissions::update_executors(
+                    program_id,
+                    system_program,
+                    account_payer,
                     data_account_basic_storage,
                     data_account_executors,
                     data_account_new_executors,

@@ -120,10 +120,13 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn update_executors(
-        data_account_basic_storage: &AccountInfo,
-        data_account_executors: &AccountInfo,
-        data_account_new_executors: &AccountInfo,
+    pub(crate) fn update_executors<'a>(
+        program_id: &Pubkey,
+        system_program: &AccountInfo<'a>,
+        account_payer: &AccountInfo<'a>,
+        data_account_basic_storage: &AccountInfo<'a>,
+        data_account_executors: &AccountInfo<'a>,
+        data_account_new_executors: &AccountInfo<'a>,
         new_executors: &Vec<EthAddress>,
         threshold: u64,
         active_since: u64,
@@ -164,8 +167,7 @@ impl Permissions {
         SignatureUtils::assert_multisig_valid(data_account_executors, &msg, signatures, executors)?;
 
         // Update current executors' inactive_after
-        let mut current_executors_info: ExecutorsInfo =
-            DataAccountUtils::read_account_data(data_account_executors)?;
+        let mut current_executors_info: ExecutorsInfo = DataAccountUtils::read_account_data(data_account_executors)?;
         current_executors_info.inactive_after = active_since;
         DataAccountUtils::write_account_data(data_account_executors, current_executors_info)?;
 
@@ -175,8 +177,14 @@ impl Permissions {
         if new_index == basic_storage.executors_group_length {
             basic_storage.executors_group_length = new_index + 1;
             DataAccountUtils::write_account_data(data_account_basic_storage, basic_storage)?;
-            DataAccountUtils::write_account_data(
+            DataAccountUtils::create_data_account(
+                program_id,
+                system_program,
+                account_payer,
                 data_account_new_executors,
+                Constants::PREFIX_EXECUTORS,
+                &new_index.to_le_bytes(),
+                Constants::SIZE_EXECUTORS_STORAGE + Constants::SIZE_LENGTH,
                 ExecutorsInfo {
                     index: new_index,
                     threshold,

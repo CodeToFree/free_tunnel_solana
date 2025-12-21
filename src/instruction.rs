@@ -34,9 +34,11 @@ pub enum FreeTunnelInstruction {
     RemoveProposer { proposer: Pubkey },
 
     /// [4]
-    /// 0. data_account_basic_storage
-    /// 1. data_account_executors: data account for storing executors at `index`
-    /// 2. data_account_new_executors: data account for storing executors at `index + 1`
+    /// 0. system_program: system program account, `11111111111111111111111111111111`
+    /// 1. account_payer
+    /// 2. data_account_basic_storage
+    /// 3. data_account_executors: data account for storing executors at `index`
+    /// 4. data_account_new_executors: data account for storing executors at `index + 1`
     UpdateExecutors {
         new_executors: Vec<EthAddress>,
         threshold: u64,
