@@ -61,8 +61,9 @@ pub enum FreeTunnelError {
     FailedToOverwriteExistingExecutors = 37,
 
     LockedBalanceMustBeZero = 40,
-    LockedBalanceInsufficient = 41,
-    RefundAccountNotWritable = 42,
+    VaultBalanceMustBeZero = 41,
+    LockedBalanceInsufficient = 42,
+    RefundAccountNotWritable = 43,
 
     // Mint/Lock (aligned with Aptos)
     ReqIdOccupied = 50,

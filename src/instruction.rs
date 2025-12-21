@@ -64,6 +64,7 @@ pub enum FreeTunnelInstruction {
     /// [6]
     /// 0. account_admin
     /// 1. data_account_basic_storage
+    /// 2. token_account_contract
     RemoveToken { token_index: u8 },
 
     /// [7]

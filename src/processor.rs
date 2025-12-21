@@ -7,8 +7,8 @@ use solana_program::{
 };
 use solana_sdk_ids;
 
-use spl_token::state::Mint;
-use spl_token_2022::state::Mint as Token2022Mint;
+use spl_token::state::{Account as TokenAccount, Mint};
+use spl_token_2022::state::{Account as Token2022Account, Mint as Token2022Mint};
 
 use crate::{
     constants::Constants,
@@ -168,10 +168,12 @@ impl Processor {
             FreeTunnelInstruction::RemoveToken { token_index } => {
                 let account_admin = next_account_info(accounts_iter)?;
                 let data_account_basic_storage = next_account_info(accounts_iter)?;
+                let token_account_contract = next_account_info(accounts_iter)?;
                 DataAccountUtils::assert_account_match(program_id, data_account_basic_storage, &Constants::BASIC_STORAGE, b"")?;
                 Self::process_remove_token(
                     account_admin,
                     data_account_basic_storage,
+                    token_account_contract,
                     token_index,
                 )
             }
@@ -542,6 +544,7 @@ impl Processor {
     fn process_remove_token<'a>(
         account_admin: &AccountInfo<'a>,
         data_account_basic_storage: &AccountInfo<'a>,
+        token_account_contract: &AccountInfo<'a>,
         token_index: u8,
     ) -> ProgramResult {
         // Check permissions
@@ -562,6 +565,23 @@ impl Processor {
         {
             Err(FreeTunnelError::LockedBalanceMustBeZero.into())
         } else {
+            let vault = basic_storage.vaults.get(token_index).ok_or(FreeTunnelError::TokenIndexNonExistent)?;
+            if token_account_contract.key != vault {
+                return Err(FreeTunnelError::InvalidTokenAccount.into());
+            }
+
+            let token_account_data = token_account_contract.data.borrow();
+            let vault_amount = if token_account_contract.owner == &spl_token::id() {
+                TokenAccount::unpack(&token_account_data)?.amount
+            } else if token_account_contract.owner == &spl_token_2022::id() {
+                Token2022Account::unpack(&token_account_data)?.amount
+            } else {
+                return Err(FreeTunnelError::InvalidTokenAccount.into());
+            };
+            if vault_amount != 0 {
+                return Err(FreeTunnelError::VaultBalanceMustBeZero.into());
+            }
+
             basic_storage.tokens.remove(token_index);
             basic_storage.vaults.remove(token_index);
             basic_storage.decimals.remove(token_index);
