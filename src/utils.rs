@@ -171,8 +171,14 @@ impl DataAccountUtils {
     pub fn read_account_data<Data: BorshDeserialize>(
         data_account: &AccountInfo,
     ) -> Result<Data, ProgramError> {
-        let account_data = &data_account.data.borrow()[..];
+        let account_data = data_account.data.borrow();
+        if account_data.len() < 4 {
+            return Err(ProgramError::InvalidAccountData);
+        }
         let data_len = u32::from_le_bytes(account_data[..4].try_into().unwrap()) as usize;
+        if data_len > account_data.len() - 4 {
+            return Err(ProgramError::InvalidAccountData);
+        }
         Data::try_from_slice(&account_data[4..4 + data_len])
             .map_err(|_| ProgramError::InvalidAccountData)
     }
@@ -252,10 +258,16 @@ impl DataAccountUtils {
         content: Data,
     ) -> ProgramResult {
         let account_data = &mut data_account.data.borrow_mut()[..];
+        if account_data.len() < 4 {
+            return Err(ProgramError::InvalidAccountData);
+        }
         let mut buffer = Vec::new();
         content
             .serialize(&mut buffer)
             .map_err(|_| ProgramError::InvalidAccountData)?;
+        if buffer.len() > account_data.len() - 4 {
+            return Err(ProgramError::InvalidAccountData);
+        }
         account_data[..4].copy_from_slice(&(buffer.len() as u32).to_le_bytes());
         account_data[4..4 + buffer.len()].copy_from_slice(&buffer);
         Ok(())
