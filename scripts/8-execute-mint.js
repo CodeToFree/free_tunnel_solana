@@ -16,13 +16,12 @@ import {
 } from "@solana/spl-token";
 import * as borsh from "borsh";
 import fs from "fs";
-import os from "os";
 import path from "path";
+import { loadProgramKeypair, loadKeypairFromFile, loadAdminKeypair } from "./utils.js";
 
 // --- Configuration ---
-const PROGRAM_ID = new PublicKey(
-  "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
-);
+const { programId: PROGRAM_ID } = loadProgramKeypair();
+
 const RPC_URL = "http://127.0.0.1:8899";
 const TEMP_DIR = path.join("scripts", "temp");
 const TOKEN_DETAILS_PATH = path.join(TEMP_DIR, "token_details.json");
@@ -46,19 +45,6 @@ const RESET = "\x1b[0m";
 const YELLOW = "\x1b[33m";
 
 /**
- * Loads a keypair from a specific file path.
- * @param {string} filePath - The path to the keypair file.
- * @returns {Keypair} The keypair.
- */
-function loadKeypairFromFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Keypair file not found at: ${filePath}`);
-  }
-  const secretKey = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  return Keypair.fromSecretKey(new Uint8Array(secretKey));
-}
-
-/**
  * Loads and parses a JSON file.
  * @param {string} filePath - The path to the JSON file.
  * @returns {object} The parsed JSON object.
@@ -77,7 +63,7 @@ async function main() {
   const connection = new Connection(RPC_URL, "confirmed");
 
   console.log("Loading admin/payer account...");
-  const admin = loadKeypairFromFile(path.join(os.homedir(), '.config', 'solana', 'id.json'));
+  const admin = loadAdminKeypair();
   console.log(`Using Admin/Payer account: ${BLUE}${admin.publicKey.toBase58()}${RESET}`);
 
   console.log("Loading details from temp files...");

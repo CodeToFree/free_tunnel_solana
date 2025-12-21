@@ -8,13 +8,11 @@ import {
 } from "@solana/web3.js";
 import * as borsh from "borsh";
 import fs from "fs";
-import os from "os";
 import path from "path";
+import { loadProgramKeypair, loadAdminKeypair } from "./utils.js";
 
 // --- Configuration ---
-const PROGRAM_ID = new PublicKey(
-  "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
-);
+const { programId: PROGRAM_ID } = loadProgramKeypair();
 
 const RPC_URL = "http://127.0.0.1:8899";
 
@@ -29,20 +27,6 @@ const GREEN = "\x1b[32m";
 const BLUE = "\x1b[34m";
 const RESET = "\x1b[0m";
 const YELLOW = "\x1b[33m";
-
-/**
- * Loads the default Solana CLI keypair to act as the admin/payer.
- * @returns {Keypair} The keypair loaded from the default path.
- */
-function loadAdminKeypair() {
-  const keypairPath = path.join(os.homedir(), '.config', 'solana', 'id.json');
-  if (!fs.existsSync(keypairPath)) {
-    throw new Error("Could not find Solana CLI keypair at default path. Please ensure it exists.");
-  }
-  const secretKey = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
-  return Keypair.fromSecretKey(new Uint8Array(secretKey));
-}
-
 
 async function main() {
   // 1. Setup accounts

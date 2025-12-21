@@ -1,10 +1,12 @@
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import * as borsh from "borsh";
+import fs from "fs";
+import path from "path";
+import { loadProgramKeypair } from "./utils.js";
 
 // --- Configuration ---
-const PROGRAM_ID = new PublicKey(
-  "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
-);
+const { programId: PROGRAM_ID } = loadProgramKeypair();
+
 const RPC_URL = "http://127.0.0.1:8899";
 
 // --- Borsh Schemas to decode on-chain data ---
