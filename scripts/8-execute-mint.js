@@ -10,7 +10,9 @@ import {
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
-  TOKEN_PROGRAM_ID
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID
 } from "@solana/spl-token";
 import * as borsh from "borsh";
 import fs from "fs";
@@ -91,7 +93,21 @@ async function main() {
 
   // 2. Prepare recipient's token account
   console.log(`\nPreparing token account for recipient: ${BLUE}${recipient.toBase58()}${RESET}`);
-  const recipientTokenAccount = await getAssociatedTokenAddress(tokenMint, recipient);
+  const mintAccountInfo = await connection.getAccountInfo(tokenMint);
+  if (!mintAccountInfo) {
+    throw new Error("Token mint account not found on-chain.");
+  }
+  const tokenProgramId = mintAccountInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+    ? TOKEN_2022_PROGRAM_ID
+    : TOKEN_PROGRAM_ID;
+
+  const recipientTokenAccount = await getAssociatedTokenAddress(
+    tokenMint,
+    recipient,
+    false,
+    tokenProgramId,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
   console.log(`Recipient's Associated Token Account: ${GREEN}${recipientTokenAccount.toBase58()}${RESET}`);
 
   const transaction = new Transaction();
@@ -104,7 +120,9 @@ async function main() {
         admin.publicKey, // Payer
         recipientTokenAccount,
         recipient,
-        tokenMint
+        tokenMint,
+        tokenProgramId,
+        ASSOCIATED_TOKEN_PROGRAM_ID
       )
     );
   } else {
@@ -119,10 +137,6 @@ async function main() {
   const exeIndexBuffer = Buffer.alloc(8);
   exeIndexBuffer.writeBigUInt64LE(exeIndex);
   const [currentExecutorsPda] = PublicKey.findProgramAddressSync([Buffer.from("executors"), exeIndexBuffer], PROGRAM_ID);
-
-  const nextExeIndexBuffer = Buffer.alloc(8);
-  nextExeIndexBuffer.writeBigUInt64LE(exeIndex + BigInt(1));
-  const [nextExecutorsPda] = PublicKey.findProgramAddressSync([Buffer.from("executors"), nextExeIndexBuffer], PROGRAM_ID);
 
   console.log(`PDA ${BLUE}[Proposed Mint]${RESET}: ${proposedMintPda.toBase58()}`);
   console.log(`PDA ${BLUE}[Current Executors]${RESET}: ${currentExecutorsPda.toBase58()}`);
@@ -144,7 +158,7 @@ async function main() {
     programId: PROGRAM_ID,
     keys: [
       // 0. token_program
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId, isSigner: false, isWritable: false },
       // 1. account_contract_signer (The PDA is the sole signer for the CPI)
       { pubkey: contractSignerPda, isSigner: false, isWritable: false },
       // 2. token_account_recipient
@@ -153,13 +167,11 @@ async function main() {
       { pubkey: new PublicKey(programPdas.basicStorage), isSigner: false, isWritable: false },
       // 4. data_account_proposed_mint
       { pubkey: proposedMintPda, isSigner: false, isWritable: true },
-      // 5. data_account_current_executors
+      // 5. data_account_executors
       { pubkey: currentExecutorsPda, isSigner: false, isWritable: false },
-      // 6. data_account_next_executors
-      { pubkey: nextExecutorsPda, isSigner: false, isWritable: false },
-      // 7. token_mint
+      // 6. token_mint
       { pubkey: tokenMint, isSigner: false, isWritable: true },
-      // 8. account_multisig_owner
+      // 7. account_multisig_owner
       { pubkey: multisigAddress, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,
@@ -183,4 +195,3 @@ main().then(
     process.exit(1);
   }
 );
-

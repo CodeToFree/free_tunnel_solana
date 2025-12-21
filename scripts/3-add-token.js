@@ -2,10 +2,18 @@ import {
   Connection,
   Keypair,
   PublicKey,
+  SystemProgram,
   Transaction,
   TransactionInstruction,
   sendAndConfirmTransaction,
+  SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 import * as borsh from "borsh";
 import fs from "fs";
 import os from "os";
@@ -16,6 +24,7 @@ const PROGRAM_ID = new PublicKey(
   "4y5qquCkpjqpMvkivnk7DYxekuX5ApKqcn4uFarjJVrj"
 );
 const TOKEN_DETAILS_PATH = path.join("scripts", "temp", "token_details.json");
+const PDAS_FILE_PATH = path.join("scripts", "temp", "program_pdas.json");
 const RPC_URL = "http://127.0.0.1:8899";
 
 // --- Instruction Data ---
@@ -59,6 +68,13 @@ function loadTokenDetails() {
     return JSON.parse(fs.readFileSync(TOKEN_DETAILS_PATH, 'utf-8'));
 }
 
+function loadProgramPdas() {
+  if (!fs.existsSync(PDAS_FILE_PATH)) {
+    throw new Error(`Could not find PDAs file at ${PDAS_FILE_PATH}. Please run 1-initialize.js first.`);
+  }
+  return JSON.parse(fs.readFileSync(PDAS_FILE_PATH, "utf-8"));
+}
+
 
 async function main() {
   // 1. Setup accounts
@@ -74,6 +90,9 @@ async function main() {
   const TOKEN_MINT = new PublicKey(tokenDetails.tokenMint);
   console.log(`Token Mint to add: ${GREEN}${TOKEN_MINT.toBase58()}${RESET}`);
 
+  const programPdas = loadProgramPdas();
+  const contractSignerPda = new PublicKey(programPdas.contractSigner);
+  console.log(`Contract Signer PDA: ${BLUE}${contractSignerPda.toBase58()}${RESET}`);
 
   // 2. Calculate PDA addresses
   console.log("\nCalculating PDA addresses...");
@@ -84,6 +103,23 @@ async function main() {
   );
 
   console.log(`PDA ${BLUE}[Basic Storage]${RESET}: ${basicStoragePda.toBase58()}`);
+
+  const mintAccountInfo = await connection.getAccountInfo(TOKEN_MINT);
+  if (!mintAccountInfo) {
+    throw new Error("Token mint account not found on-chain.");
+  }
+  const tokenProgramId = mintAccountInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+    ? TOKEN_2022_PROGRAM_ID
+    : TOKEN_PROGRAM_ID;
+
+  const tokenAccountContract = await getAssociatedTokenAddress(
+    TOKEN_MINT,
+    contractSignerPda,
+    true,
+    tokenProgramId,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+  console.log(`Contract Token Account: ${BLUE}${tokenAccountContract.toBase58()}${RESET}`);
 
   // 3. Serialize instruction data
   const instructionDataPayload = {
@@ -106,12 +142,22 @@ async function main() {
   const addTokenInstruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
-      // 0. account_admin
-      { pubkey: admin.publicKey, isSigner: true, isWritable: false },
-      // 1. data_account_basic_storage
+      // 0. system_program
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      // 1. token_program
+      { pubkey: tokenProgramId, isSigner: false, isWritable: false },
+      // 2. account_admin
+      { pubkey: admin.publicKey, isSigner: true, isWritable: true },
+      // 3. token_account_contract
+      { pubkey: tokenAccountContract, isSigner: false, isWritable: true },
+      // 4. account_contract_signer
+      { pubkey: contractSignerPda, isSigner: false, isWritable: false },
+      // 5. data_account_basic_storage
       { pubkey: basicStoragePda, isSigner: false, isWritable: true },
-      // 2. token_mint
+      // 6. token_mint
       { pubkey: TOKEN_MINT, isSigner: false, isWritable: false },
+      // 7. rent_sysvar
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
     ],
     data: instructionBuffer,
   });

@@ -108,6 +108,8 @@ async function main() {
       { pubkey: basicStoragePda, isSigner: false, isWritable: false },
       // 1. data_account_proposed_mint
       { pubkey: proposedMintPda, isSigner: false, isWritable: true },
+      // 2. account_refund
+      { pubkey: proposer.publicKey, isSigner: false, isWritable: true },
     ],
     data: instructionBuffer,
   });
