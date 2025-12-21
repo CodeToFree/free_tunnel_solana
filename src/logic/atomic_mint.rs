@@ -273,9 +273,9 @@ impl AtomicMint {
         token_ops::transfer_from_contract(
             program_id,
             token_program,
+            account_contract_signer,
             token_account_contract,
             token_account_proposer,
-            account_contract_signer,
             amount,
         )?;
 
