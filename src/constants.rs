@@ -18,7 +18,7 @@ impl Constants {
 
     // Bridge related
     pub const HUB_ID: u8 = 0xa1;
-    pub const BRIDGE_CHANNEL: &'static [u8] = b"Solana Bridge";
+    pub const BRIDGE_CHANNEL: &'static [u8] = b"SolvBTC Bridge";
     pub const PROPOSE_PERIOD: u64 = 48 * 60 * 60;
     pub const EXPIRE_PERIOD: u64 = 72 * 60 * 60;
     pub const EXPIRE_EXTRA_PERIOD: u64 = 96 * 60 * 60;
