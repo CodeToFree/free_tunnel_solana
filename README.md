@@ -1,5 +1,7 @@
 # Free Tunnel Solana
 
+## Local Chain Testing
+
 ```bash
 # build the program
 cargo build-sbf
@@ -28,4 +30,23 @@ node scripts/9-check-balance.js
 # Creating token GGTNAp3YA3FxsvBxKPuZ4iqrGhB66H96k8Rx4xxm3E7z under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
 # Address:  GGTNAp3YA3FxsvBxKPuZ4iqrGhB66H96k8Rx4xxm3E7z
 # Decimals:  9
+```
+
+## Mainnet/Testnet/Devnet Testing
+
+```bash
+# set the url
+solana config set --url https://api.devnet.solana.com
+
+# check balance (we need at least 3 $SOL to deploy)
+solana balance
+
+# deploy the program
+solana program deploy target/deploy/free_tunnel_solana.so
+
+# backup the keypair in `./target/deploy/free_tunnel_solana-keypair.json`,
+#  that's the program keypair.
+
+# initialize the program
+node scripts/1-initialize.js
 ```
