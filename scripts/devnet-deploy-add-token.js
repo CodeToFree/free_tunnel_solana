@@ -9,6 +9,7 @@ import {
 } from "@solana/web3.js";
 import {
   createMint,
+  createMultisig,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -23,7 +24,7 @@ import { loadProgramKeypair, loadAdminKeypair } from "./utils.js";
 dotenv.config();
 
 const { programId: PROGRAM_ID } = loadProgramKeypair();
-const RPC_URL = process.env.SOL_RPC || "https://api.devnet.solana.com";
+const RPC_URL = process.env.SOL_RPC || "http://127.0.0.1:8899";
 const PDAS_FILE_PATH = path.join("scripts", "temp", "program_pdas.json");
 
 const INSTRUCTION_SCHEMA = {
@@ -52,12 +53,25 @@ async function main() {
   async function createAndRegisterToken(name, decimals, index, tokenProgramId) {
     console.log(`\n--- Processing ${name} (Index: ${index}) ---`);
     
-    // 1. Create Mint (Authority = Admin)
+    // 1. Create 1/2 Multisig (Admin + ContractSigner)
+    console.log(`Creating 1/2 Multisig...`);
+    const multisig = await createMultisig(
+      connection,
+      admin,
+      [admin.publicKey, contractSignerPda],
+      1,
+      undefined,
+      undefined,
+      tokenProgramId
+    );
+    console.log(`Multisig Created: ${BLUE}${multisig.toBase58()}${RESET}`);
+
+    // 2. Create Mint (Authority = Multisig)
     console.log(`Creating Mint...`);
     const mint = await createMint(
       connection,
       admin,
-      admin.publicKey, // Mint Authority = Admin
+      multisig, // Mint Authority = Multisig
       null, // Freeze Authority
       decimals,
       undefined,
@@ -66,7 +80,7 @@ async function main() {
     );
     console.log(`Mint Created: ${BLUE}${mint.toBase58()}${RESET}`);
 
-    // 2. AddToken Instruction
+    // 3. AddToken Instruction
     console.log(`Registering with Bridge...`);
     const tokenAccountContract = await getAssociatedTokenAddress(
       mint,
@@ -116,4 +130,3 @@ main().catch(err => {
   console.error(err);
   process.exit(1);
 });
-

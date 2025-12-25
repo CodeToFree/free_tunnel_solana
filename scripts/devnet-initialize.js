@@ -22,7 +22,7 @@ const RESET = "\x1b[0m";
 
 const { programId: PROGRAM_ID } = loadProgramKeypair();
 console.log(`Program ID: ${BLUE}${PROGRAM_ID.toBase58()}${RESET}`);
-const RPC_URL = process.env.SOL_RPC || "https://api.devnet.solana.com";
+const RPC_URL = process.env.SOL_RPC || "http://127.0.0.1:8899";
 
 // Setup storage for PDAs to share with other scripts
 const TEMP_DIR = path.join("scripts", "temp");

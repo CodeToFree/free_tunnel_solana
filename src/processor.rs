@@ -574,7 +574,13 @@ impl Processor {
             let vault_amount = if token_account_contract.owner == &spl_token::id() {
                 TokenAccount::unpack(&token_account_data)?.amount
             } else if token_account_contract.owner == &spl_token_2022::id() {
-                Token2022Account::unpack(&token_account_data)?.amount
+                match Token2022Account::unpack_from_slice(&token_account_data) {
+                    Ok(account) => account.amount,
+                    Err(e) => {
+                        msg!("Error: Failed to unpack Token-2022 account: {:?}", e);
+                        return Err(e);
+                    }
+                }
             } else {
                 return Err(FreeTunnelError::InvalidTokenAccount.into());
             };

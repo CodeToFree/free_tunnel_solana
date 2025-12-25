@@ -14,7 +14,7 @@ import { loadProgramKeypair, loadAdminKeypair } from "./utils.js";
 dotenv.config();
 
 const { programId: PROGRAM_ID } = loadProgramKeypair();
-const RPC_URL = process.env.SOL_RPC || "https://api.devnet.solana.com";
+const RPC_URL = process.env.SOL_RPC || "http://127.0.0.1:8899";
 const PDAS_FILE_PATH = path.join("scripts", "temp", "program_pdas.json");
 
 const INSTRUCTION_SCHEMA = {

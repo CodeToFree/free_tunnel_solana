@@ -6,6 +6,9 @@
 # build the program
 cargo build-sbf
 
+# set the url to localhost
+solana config set --url localhost
+
 # clean the old local chain and run a new local chain
 solana-test-validator --reset
 
@@ -44,9 +47,21 @@ solana balance
 # deploy the program
 solana program deploy target/deploy/free_tunnel_solana.so
 
+# fill in the `SOL_RPC` in the `.env` file
+# example: SOL_RPC="https://api.devnet.solana.com"
+
 # backup the keypair in `./target/deploy/free_tunnel_solana-keypair.json`,
 #  that's the program keypair.
 
 # initialize the program
-node scripts/1-initialize.js
+node scripts/devnet-initialize.js
+
+# deploy & add the token
+node scripts/devnet-deploy-add-token.js
+
+# add proposer
+node scripts/devnet-add-proposer.js
+
+# remove token
+node scripts/devnet-remove-token.js
 ```
