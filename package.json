@@ -5,11 +5,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "cargo build-sbf",
+    "test": "solana-test-validator --reset",
+    "deploy": "solana program deploy ./target/deploy/free_tunnel_solana.so -C .solana/config.yml"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
     "@solana/spl-token": "^0.4.13",
